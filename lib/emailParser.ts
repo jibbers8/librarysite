@@ -32,12 +32,31 @@ function extractText(message: MailMessage) {
   return body || message.bodyPreview || "";
 }
 
-function parseReservationWindow(text: string) {
-  const compact = text.replace(/\s+/g, " ").trim();
-
-  const match = compact.match(
-    /reservation is confirmed for:\s*([^:]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i
+function normalizeReservationText(text: string) {
+  // Undo quoted-printable line wrapping artifacts commonly seen in forwarded emails.
+  const unwrapped = text.replace(/=\r?\n/g, "");
+  // Decode "=XX" sequences where XX is hex.
+  const decoded = unwrapped.replace(/=([A-Fa-f0-9]{2})/g, (_, hex: string) =>
+    String.fromCharCode(Number.parseInt(hex, 16))
   );
+  return decoded.replace(/\s+/g, " ").trim();
+}
+
+function parseReservationWindow(text: string) {
+  const compact = normalizeReservationText(text);
+  const patterns = [
+    /reservation is confirmed for:\s*([^:]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+    /(?:for:\s*)?([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+    /(?:for:\s*)?([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+  ];
+
+  let match: RegExpMatchArray | null = null;
+  for (const pattern of patterns) {
+    match = compact.match(pattern);
+    if (match) {
+      break;
+    }
+  }
 
   if (!match) {
     return {};
@@ -55,7 +74,7 @@ function parseReservationWindow(text: string) {
 }
 
 function parseHoldUntil(text: string) {
-  const compact = text.replace(/\s+/g, " ").trim();
+  const compact = normalizeReservationText(text);
   const match = compact.match(
     /(hold(?:ing)?(?: expires| until| by)?|pick(?:\s|-)?up by)\s*:?\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4}(?:\s+\d{1,2}:\d{2}\s*[ap]m)?)/i
   );
@@ -95,7 +114,7 @@ export function isPotentialReservationEmail(message: MailMessage) {
 }
 
 export function parseReservationEmail(message: MailMessage): ParsedReservation {
-  const text = extractText(message);
+  const text = normalizeReservationText(extractText(message));
   const reservationWindow = parseReservationWindow(text);
   const lowerText = text.toLowerCase();
 
