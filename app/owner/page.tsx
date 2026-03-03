@@ -7,6 +7,12 @@ import { syncReservations } from "@/lib/syncReservations";
 
 export const dynamic = "force-dynamic";
 
+type OwnerPageProps = {
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
+};
+
 async function triggerSync() {
   "use server";
   const session = await getServerAuthSession();
@@ -22,7 +28,12 @@ async function triggerSync() {
   redirect("/owner");
 }
 
-export default async function OwnerPage() {
+export default async function OwnerPage({ searchParams }: OwnerPageProps) {
+  const resolvedSearchParams = await Promise.resolve(searchParams ?? {});
+  const authError =
+    typeof resolvedSearchParams.error === "string"
+      ? resolvedSearchParams.error
+      : undefined;
   const session = await getServerAuthSession();
   const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
   const isOwner = session?.user?.email?.toLowerCase() === ownerEmail;
@@ -39,6 +50,13 @@ export default async function OwnerPage() {
       <p className="text-sm text-zinc-600">
         Sign in with your Google account to sync forwarded reservation emails.
       </p>
+
+      {authError && (
+        <div className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
+          Google sign-in failed (`error={authError}`). Check Google OAuth redirect
+          URIs, Google client ID/secret env vars, and `NEXTAUTH_SECRET` in Vercel.
+        </div>
+      )}
 
       {!session && (
         <form action="/api/auth/signin/google" method="get">
