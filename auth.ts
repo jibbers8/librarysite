@@ -9,12 +9,6 @@ const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
 const microsoftClientId = process.env.MICROSOFT_CLIENT_ID;
 const microsoftClientSecret = process.env.MICROSOFT_CLIENT_SECRET;
 
-if (!microsoftClientId || !microsoftClientSecret) {
-  throw new Error(
-    "MICROSOFT_CLIENT_ID and MICROSOFT_CLIENT_SECRET must be configured."
-  );
-}
-
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   session: {
@@ -22,8 +16,8 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     AzureAD({
-      clientId: microsoftClientId,
-      clientSecret: microsoftClientSecret,
+      clientId: microsoftClientId ?? "missing-client-id",
+      clientSecret: microsoftClientSecret ?? "missing-client-secret",
       issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
       authorization: {
         params: {
