@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { LibCalSearchTool } from "@/app/libcal-search-tool";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl p-6">
+      <LibCalSearchTool />
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold">Current Library Reservations</h1>
