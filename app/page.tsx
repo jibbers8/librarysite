@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import type { Reservation } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,7 @@ export default async function Home() {
         </div>
       ) : (
         <ul className="grid gap-4">
-          {reservations.map((reservation) => (
+          {reservations.map((reservation: Reservation) => (
             <li className="rounded-lg border p-4" key={reservation.id}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">
