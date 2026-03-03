@@ -9,6 +9,8 @@ type SyncResult = {
   parsedCount: number;
   upsertedCount: number;
   skippedCount: number;
+  deletedReservationCount: number;
+  deletedSyncLogCount: number;
 };
 
 type GoogleTokenResponse = {
@@ -107,6 +109,52 @@ async function getValidAccessToken(ownerEmailOverride?: string) {
   return refreshed.access_token;
 }
 
+function getRetentionDays() {
+  const reservationDays = Number.parseInt(
+    process.env.RESERVATION_RETENTION_DAYS ?? "180",
+    10
+  );
+  const syncLogDays = Number.parseInt(process.env.SYNC_LOG_RETENTION_DAYS ?? "60", 10);
+
+  return {
+    reservationDays:
+      Number.isNaN(reservationDays) || reservationDays < 7 ? 180 : reservationDays,
+    syncLogDays: Number.isNaN(syncLogDays) || syncLogDays < 7 ? 60 : syncLogDays,
+  };
+}
+
+async function cleanupOldData() {
+  const { reservationDays, syncLogDays } = getRetentionDays();
+
+  const reservationCutoff = new Date(
+    Date.now() - reservationDays * 24 * 60 * 60 * 1000
+  );
+  const syncLogCutoff = new Date(Date.now() - syncLogDays * 24 * 60 * 60 * 1000);
+
+  const reservations = await prisma.reservation.deleteMany({
+    where: {
+      syncedAt: { lt: reservationCutoff },
+      OR: [
+        { status: "CANCELED" },
+        { status: "EXPIRED" },
+        { holdUntil: { lt: reservationCutoff } },
+        { endsAt: { lt: reservationCutoff } },
+      ],
+    },
+  });
+
+  const syncLogs = await prisma.syncLog.deleteMany({
+    where: {
+      startedAt: { lt: syncLogCutoff },
+    },
+  });
+
+  return {
+    deletedReservationCount: reservations.count,
+    deletedSyncLogCount: syncLogs.count,
+  };
+}
+
 type SyncOptions = {
   ownerEmailOverride?: string;
   trigger?: SyncTrigger;
@@ -190,11 +238,15 @@ export async function syncReservations(options: SyncOptions = {}) {
       },
     });
 
+    const cleanupResult = await cleanupOldData();
+
     return {
       emailsRead: messages.length,
       parsedCount,
       upsertedCount,
       skippedCount,
+      deletedReservationCount: cleanupResult.deletedReservationCount,
+      deletedSyncLogCount: cleanupResult.deletedSyncLogCount,
     } satisfies SyncResult;
   } catch (error) {
     await prisma.syncLog.update({

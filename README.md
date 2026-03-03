@@ -53,6 +53,10 @@ Helper command (prints exact callback URLs for your current env/domain):
 - Scheduled sync: GitHub Actions runs hourly and calls `/api/cron/sync`.
 - Backup sync: Vercel Cron runs daily (`vercel.json`) to satisfy Hobby plan limits.
 - Public page only displays normalized reservation metadata from the database.
+- Automatic cleanup runs after sync:
+  - old `Reservation` rows are pruned (default 180 days)
+  - old `SyncLog` rows are pruned (default 60 days)
+  - configure via `RESERVATION_RETENTION_DAYS` and `SYNC_LOG_RETENTION_DAYS`
 
 ### GitHub Scheduled Sync Setup
 
