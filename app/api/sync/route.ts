@@ -35,7 +35,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await syncReservations();
+    const result = await syncReservations({
+      ownerEmailOverride: isOwner ? sessionEmail : undefined,
+      trigger: isOwner ? "MANUAL" : "API",
+    });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(

@@ -18,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const result = await syncReservations();
+    const result = await syncReservations({ trigger: "CRON" });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json(

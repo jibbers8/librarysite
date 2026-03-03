@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import { fetchRecentMessages } from "@/lib/mailClient";
 import { isPotentialReservationEmail, parseReservationEmail } from "@/lib/emailParser";
 
+export type SyncTrigger = "MANUAL" | "CRON" | "API";
+
 type SyncResult = {
   emailsRead: number;
   parsedCount: number;
@@ -105,9 +107,17 @@ async function getValidAccessToken(ownerEmailOverride?: string) {
   return refreshed.access_token;
 }
 
-export async function syncReservations(ownerEmailOverride?: string) {
+type SyncOptions = {
+  ownerEmailOverride?: string;
+  trigger?: SyncTrigger;
+};
+
+export async function syncReservations(options: SyncOptions = {}) {
+  const { ownerEmailOverride, trigger = "MANUAL" } = options;
   const syncLog = await prisma.syncLog.create({
-    data: {},
+    data: {
+      trigger,
+    },
   });
 
   try {

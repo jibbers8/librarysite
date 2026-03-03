@@ -23,7 +23,7 @@ async function triggerSync() {
   }
 
   try {
-    await syncReservations(sessionEmail);
+    await syncReservations({ ownerEmailOverride: sessionEmail, trigger: "MANUAL" });
   } catch (error) {
     const message =
       error instanceof Error ? error.message.slice(0, 220) : "sync-failed";
@@ -53,6 +53,15 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
         orderBy: { startedAt: "desc" },
       })
     : null;
+  const latestAutoSync = isOwner
+    ? await prisma.syncLog.findFirst({
+        where: {
+          trigger: "CRON",
+        },
+        orderBy: { startedAt: "desc" },
+      })
+    : null;
+  const autoSyncHealthy = latestAutoSync?.status === "SUCCESS";
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
@@ -113,6 +122,23 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
               {new Date(latestSync.startedAt).toLocaleString()}
             </div>
           )}
+          <div
+            className={`rounded-md border p-3 text-sm ${
+              autoSyncHealthy
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-amber-300 bg-amber-50 text-amber-800"
+            }`}
+          >
+            Auto-sync status:{" "}
+            <span className="font-medium">
+              {autoSyncHealthy ? "Healthy" : "Needs attention"}
+            </span>
+            {latestAutoSync ? (
+              <> (last auto-sync {new Date(latestAutoSync.startedAt).toLocaleString()})</>
+            ) : (
+              <> (no auto-sync runs recorded yet)</>
+            )}
+          </div>
         </div>
       )}
     </main>

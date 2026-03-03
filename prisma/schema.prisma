@@ -78,6 +78,7 @@ model SyncLog {
   id           String   @id @default(cuid())
   startedAt    DateTime @default(now())
   finishedAt   DateTime?
+  trigger      SyncTrigger @default(MANUAL)
   status       SyncStatus @default(RUNNING)
   emailsRead   Int      @default(0)
   parsedCount  Int      @default(0)
@@ -103,4 +104,10 @@ enum SyncStatus {
   RUNNING
   SUCCESS
   FAILURE
+}
+
+enum SyncTrigger {
+  MANUAL
+  CRON
+  API
 }

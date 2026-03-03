@@ -26,6 +26,9 @@ function formatDate(value: Date | null) {
 
 export default async function Home() {
   let reservations: ReservationView[] = [];
+  let latestAutoSync:
+    | { startedAt: Date; status: "RUNNING" | "SUCCESS" | "FAILURE" }
+    | null = null;
   let loadError = false;
 
   try {
@@ -37,9 +40,15 @@ export default async function Home() {
       orderBy: [{ holdUntil: "asc" }, { startsAt: "asc" }, { receivedAt: "desc" }],
       take: 100,
     });
+    latestAutoSync = await prisma.syncLog.findFirst({
+      where: { trigger: "CRON" },
+      orderBy: { startedAt: "desc" },
+      select: { startedAt: true, status: true },
+    });
   } catch {
     loadError = true;
   }
+  const autoSyncHealthy = latestAutoSync?.status === "SUCCESS";
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl p-6">
@@ -54,6 +63,22 @@ export default async function Home() {
           Owner Console
         </a>
       </div>
+      {!loadError && (
+        <div
+          className={`mb-4 rounded-md border p-3 text-sm ${
+            autoSyncHealthy
+              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+              : "border-amber-300 bg-amber-50 text-amber-800"
+          }`}
+        >
+          Auto-sync: <span className="font-medium">{autoSyncHealthy ? "Working" : "Check owner console"}</span>
+          {latestAutoSync ? (
+            <> (last auto-sync {new Date(latestAutoSync.startedAt).toLocaleString()})</>
+          ) : (
+            <> (no auto-sync runs yet)</>
+          )}
+        </div>
+      )}
 
       {loadError ? (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-6 text-sm text-amber-800">
