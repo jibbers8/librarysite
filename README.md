@@ -51,8 +51,18 @@ Helper command (prints exact callback URLs for your current env/domain):
 ## Sync Behavior
 
 - Manual sync: owner can trigger from `/owner`.
-- Scheduled sync: Vercel Cron calls `/api/cron/sync` every hour (`vercel.json`).
+- Scheduled sync: GitHub Actions runs hourly and calls `/api/cron/sync`.
+- Backup sync: Vercel Cron runs daily (`vercel.json`) to satisfy Hobby plan limits.
 - Public page only displays normalized reservation metadata from the database.
+
+### GitHub Scheduled Sync Setup
+
+Add these repository secrets in GitHub (`Settings` -> `Secrets and variables` -> `Actions`):
+
+- `SYNC_URL`: `https://<your-vercel-domain>/api/cron/sync`
+- `CRON_SECRET`: same value as the `CRON_SECRET` environment variable in Vercel
+
+The workflow file is `.github/workflows/sync-reservations.yml`.
 
 ## Deploying on Vercel
 
