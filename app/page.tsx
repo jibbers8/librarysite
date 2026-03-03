@@ -40,7 +40,7 @@ export default async function Home() {
         <div>
           <h1 className="text-3xl font-semibold">Current Library Reservations</h1>
           <p className="text-sm text-zinc-600">
-            Auto-synced from Outlook confirmation emails.
+            Auto-synced from forwarded Gmail reservation emails.
           </p>
         </div>
         <a className="text-sm underline" href="/owner">

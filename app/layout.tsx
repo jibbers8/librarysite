@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Library Reservations",
-  description: "Public view of current library reservations synced from Outlook.",
+  description: "Public view of current library reservations synced from Gmail.",
 };
 
 export default function RootLayout({

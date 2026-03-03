@@ -1,13 +1,13 @@
 # Library Reservations Site
 
-Public website for friends to see your current library reservations, synced from Outlook confirmation emails.
+Public website for friends to see your current library reservations, synced from forwarded reservation emails in Gmail.
 
 ## Stack
 
 - Next.js (App Router + TypeScript)
-- NextAuth with Microsoft OAuth
+- NextAuth with Google OAuth
 - Prisma + PostgreSQL
-- Microsoft Graph API (`Mail.Read`)
+- Gmail API (`gmail.readonly`)
 
 ## Local Setup
 
@@ -16,8 +16,8 @@ Public website for friends to see your current library reservations, synced from
 2. Open `.env.local` and fill only values that must come from your accounts:
    - `DATABASE_URL`
    - `OWNER_EMAIL`
-   - `MICROSOFT_CLIENT_ID`
-   - `MICROSOFT_CLIENT_SECRET`
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
 3. If you changed `DATABASE_URL`, run:
    - `npm run prisma:push`
 4. Start:
@@ -27,23 +27,22 @@ Visit:
 - `http://localhost:3000` for the public reservations page
 - `http://localhost:3000/owner` for owner sign-in and manual sync
 
-## Microsoft App Registration
+## Google App Registration
 
-Create an app registration in Azure/Microsoft Entra:
+Create OAuth credentials in Google Cloud:
 
-- Supported account type: your account type (personal + org if needed)
+- Enable the Gmail API for your project.
+- Create an OAuth Web Client.
 - Redirect URI:
-  - `http://localhost:3000/api/auth/callback/azure-ad`
-  - `https://<your-vercel-domain>/api/auth/callback/azure-ad`
-- API permissions (delegated):
+  - `http://localhost:3000/api/auth/callback/google`
+  - `https://<your-vercel-domain>/api/auth/callback/google`
+- OAuth scopes:
   - `openid`
-  - `profile`
   - `email`
-  - `offline_access`
-  - `User.Read`
-  - `Mail.Read`
+  - `profile`
+  - `https://www.googleapis.com/auth/gmail.readonly`
 
-Then place client ID, client secret, and tenant ID in environment variables.
+Then place client ID and client secret in environment variables.
 
 Helper command (prints exact callback URLs for your current env/domain):
 - `npm run callbacks`
@@ -69,7 +68,7 @@ The workflow file is `.github/workflows/sync-reservations.yml`.
 1. Import this project into Vercel.
 2. Set all environment variables from `.env.local` or `.env.example`.
 3. Ensure the database is reachable from Vercel.
-4. Deploy and sign in once at `/owner` to authorize Outlook access.
+4. Deploy and sign in once at `/owner` to authorize Gmail access.
 
 ## GitHub First Workflow
 
@@ -77,4 +76,4 @@ The workflow file is `.github/workflows/sync-reservations.yml`.
 2. CI runs automatically via `.github/workflows/ci.yml` (lint + build).
 3. Connect the GitHub repo to Vercel.
 4. Add the same env vars in Vercel Project Settings.
-5. Add Microsoft production callback URL using your Vercel domain.
+5. Add Google production callback URL using your Vercel domain.

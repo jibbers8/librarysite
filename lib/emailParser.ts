@@ -1,6 +1,6 @@
 import { htmlToText } from "html-to-text";
 
-import type { GraphMessage } from "@/lib/graphClient";
+import type { MailMessage } from "@/lib/mailClient";
 
 const ALLOWED_SENDER_PATTERNS = [
   /@mail\.libcal\.com$/i,
@@ -22,7 +22,7 @@ export type ParsedReservation = {
   rawPreview?: string;
 };
 
-function extractText(message: GraphMessage) {
+function extractText(message: MailMessage) {
   const body = message.body?.content ?? "";
 
   if (message.body?.contentType === "html") {
@@ -84,7 +84,7 @@ function detectReservationKind(subject: string, text: string): ParsedReservation
   return "OTHER";
 }
 
-export function isPotentialReservationEmail(message: GraphMessage) {
+export function isPotentialReservationEmail(message: MailMessage) {
   const sender = message.from?.emailAddress?.address ?? "";
   const subject = message.subject ?? "";
 
@@ -94,7 +94,7 @@ export function isPotentialReservationEmail(message: GraphMessage) {
   return senderMatch || subjectMatch;
 }
 
-export function parseReservationEmail(message: GraphMessage): ParsedReservation {
+export function parseReservationEmail(message: MailMessage): ParsedReservation {
   const text = extractText(message);
   const reservationWindow = parseReservationWindow(text);
   const lowerText = text.toLowerCase();

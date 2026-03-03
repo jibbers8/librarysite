@@ -37,15 +37,15 @@ export default async function OwnerPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
       <h1 className="text-3xl font-semibold">Owner Console</h1>
       <p className="text-sm text-zinc-600">
-        Sign in with your Microsoft account to connect Outlook and run a sync.
+        Sign in with your Google account to sync forwarded reservation emails.
       </p>
 
       {!session && (
         <Link
           className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-          href="/api/auth/signin/azure-ad?callbackUrl=/owner"
+          href="/api/auth/signin/google?callbackUrl=/owner"
         >
-          Sign in with Microsoft
+          Sign in with Google
         </Link>
       )}
 

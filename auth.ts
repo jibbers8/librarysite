@@ -1,13 +1,12 @@
 import { getServerSession, type NextAuthOptions } from "next-auth";
-import AzureAD from "next-auth/providers/azure-ad";
+import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 
 import { prisma } from "@/lib/db";
 
-const tenantId = process.env.MICROSOFT_TENANT_ID ?? "common";
 const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
-const microsoftClientId = process.env.MICROSOFT_CLIENT_ID;
-const microsoftClientSecret = process.env.MICROSOFT_CLIENT_SECRET;
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -15,13 +14,15 @@ export const authOptions: NextAuthOptions = {
     strategy: "database",
   },
   providers: [
-    AzureAD({
-      clientId: microsoftClientId ?? "missing-client-id",
-      clientSecret: microsoftClientSecret ?? "missing-client-secret",
-      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
+    GoogleProvider({
+      clientId: googleClientId ?? "missing-client-id",
+      clientSecret: googleClientSecret ?? "missing-client-secret",
       authorization: {
         params: {
-          scope: "openid profile email offline_access User.Read Mail.Read",
+          scope:
+            "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          access_type: "offline",
+          prompt: "consent",
         },
       },
     }),

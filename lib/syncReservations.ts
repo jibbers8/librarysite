@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { fetchRecentMessages } from "@/lib/graphClient";
+import { fetchRecentMessages } from "@/lib/mailClient";
 import { isPotentialReservationEmail, parseReservationEmail } from "@/lib/emailParser";
 
 type SyncResult = {
@@ -9,7 +9,7 @@ type SyncResult = {
   skippedCount: number;
 };
 
-type MicrosoftTokenResponse = {
+type GoogleTokenResponse = {
   access_token: string;
   refresh_token?: string;
   expires_in: number;
@@ -17,22 +17,20 @@ type MicrosoftTokenResponse = {
   token_type?: string;
 };
 
-async function refreshMicrosoftToken(refreshToken: string) {
-  const tenantId = process.env.MICROSOFT_TENANT_ID ?? "common";
-  const clientId = process.env.MICROSOFT_CLIENT_ID;
-  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET;
+async function refreshGoogleToken(refreshToken: string) {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error("Missing Microsoft OAuth environment variables.");
+    throw new Error("Missing Google OAuth environment variables.");
   }
 
-  const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
+  const tokenUrl = "https://oauth2.googleapis.com/token";
   const body = new URLSearchParams({
     client_id: clientId,
     client_secret: clientSecret,
     grant_type: "refresh_token",
     refresh_token: refreshToken,
-    scope: "openid profile email offline_access User.Read Mail.Read",
   });
 
   const response = await fetch(tokenUrl, {
@@ -45,13 +43,13 @@ async function refreshMicrosoftToken(refreshToken: string) {
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Microsoft token refresh failed: ${response.status} ${text}`);
+    throw new Error(`Google token refresh failed: ${response.status} ${text}`);
   }
 
-  return (await response.json()) as MicrosoftTokenResponse;
+  return (await response.json()) as GoogleTokenResponse;
 }
 
-async function getOwnerMicrosoftAccount() {
+async function getOwnerGoogleAccount() {
   const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
   if (!ownerEmail) {
     throw new Error("OWNER_EMAIL is required to identify the mailbox owner.");
@@ -61,7 +59,7 @@ async function getOwnerMicrosoftAccount() {
     where: { email: ownerEmail },
     include: {
       accounts: {
-        where: { provider: "azure-ad" },
+        where: { provider: "google" },
         orderBy: { id: "desc" },
         take: 1,
       },
@@ -70,14 +68,14 @@ async function getOwnerMicrosoftAccount() {
 
   const account = user?.accounts[0];
   if (!account) {
-    throw new Error("No Microsoft account found. Sign in at /owner first.");
+    throw new Error("No Google account found. Sign in at /owner first.");
   }
 
   return account;
 }
 
 async function getValidAccessToken() {
-  const account = await getOwnerMicrosoftAccount();
+  const account = await getOwnerGoogleAccount();
 
   const nowInSeconds = Math.floor(Date.now() / 1000);
   const expiresSoon = !account.expires_at || account.expires_at < nowInSeconds + 60;
@@ -90,7 +88,7 @@ async function getValidAccessToken() {
     throw new Error("Missing refresh token. Sign in again to re-authorize access.");
   }
 
-  const refreshed = await refreshMicrosoftToken(account.refresh_token);
+  const refreshed = await refreshGoogleToken(account.refresh_token);
   const expiresAt = Math.floor(Date.now() / 1000) + refreshed.expires_in;
 
   await prisma.account.update({
