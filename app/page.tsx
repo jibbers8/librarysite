@@ -25,14 +25,21 @@ function formatDate(value: Date | null) {
 }
 
 export default async function Home() {
-  const reservations: ReservationView[] = await prisma.reservation.findMany({
-    where: {
-      status: "CONFIRMED",
-      OR: [{ holdUntil: null }, { holdUntil: { gte: new Date() } }],
-    },
-    orderBy: [{ holdUntil: "asc" }, { startsAt: "asc" }, { receivedAt: "desc" }],
-    take: 100,
-  });
+  let reservations: ReservationView[] = [];
+  let loadError = false;
+
+  try {
+    reservations = await prisma.reservation.findMany({
+      where: {
+        status: "CONFIRMED",
+        OR: [{ holdUntil: null }, { holdUntil: { gte: new Date() } }],
+      },
+      orderBy: [{ holdUntil: "asc" }, { startsAt: "asc" }, { receivedAt: "desc" }],
+      take: 100,
+    });
+  } catch {
+    loadError = true;
+  }
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl p-6">
@@ -48,7 +55,11 @@ export default async function Home() {
         </a>
       </div>
 
-      {reservations.length === 0 ? (
+      {loadError ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-6 text-sm text-amber-800">
+          Reservations are not available yet. Finish environment setup and redeploy.
+        </div>
+      ) : reservations.length === 0 ? (
         <div className="rounded-lg border p-6 text-sm text-zinc-600">
           No active reservations found.
         </div>
