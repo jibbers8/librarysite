@@ -24,8 +24,11 @@ async function triggerSync() {
 
   try {
     await syncReservations(sessionEmail);
-  } catch {
-    redirect("/owner?syncError=sync-failed");
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message.slice(0, 220) : "sync-failed";
+    console.error("Owner sync failed:", error);
+    redirect(`/owner?syncError=${encodeURIComponent(message)}`);
   }
 
   redirect("/owner");
@@ -66,8 +69,7 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
       )}
       {syncError && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
-          Sync failed (`syncError={syncError}`). Make sure you are signed in to the
-          Gmail account receiving forwarded reservation emails, then try again.
+          Sync failed: <code>{syncError}</code>
         </div>
       )}
 
