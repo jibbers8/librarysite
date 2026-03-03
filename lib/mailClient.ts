@@ -24,7 +24,7 @@ type GmailListResponse = {
 
 type GmailPayloadPart = {
   mimeType?: string;
-  body?: { data?: string };
+  body?: { data?: string; attachmentId?: string };
   parts?: GmailPayloadPart[];
 };
 
@@ -34,10 +34,14 @@ type GmailMessageResponse = {
   internalDate?: string;
   payload?: {
     headers?: Array<{ name?: string; value?: string }>;
-    body?: { data?: string };
+    body?: { data?: string; attachmentId?: string };
     mimeType?: string;
     parts?: GmailPayloadPart[];
   };
+};
+
+type GmailAttachmentResponse = {
+  data?: string;
 };
 
 const SLEEP_MS_BETWEEN_MESSAGE_FETCHES = 120;
@@ -185,7 +189,75 @@ async function fetchGmailMessage(accessToken: string, id: string) {
     throw new Error(`Failed to fetch Gmail message ${id}: ${response.status} ${text}`);
   }
 
-  return (await response.json()) as GmailMessageResponse;
+  const message = (await response.json()) as GmailMessageResponse;
+  await hydrateMessagePayload(message, accessToken);
+  return message;
+}
+
+async function fetchAttachmentData(
+  accessToken: string,
+  messageId: string,
+  attachmentId: string
+) {
+  const response = await fetchWithRetry(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}/attachments/${attachmentId}`,
+    accessToken
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(
+      `Failed to fetch Gmail attachment ${attachmentId}: ${response.status} ${text}`
+    );
+  }
+
+  const payload = (await response.json()) as GmailAttachmentResponse;
+  return payload.data;
+}
+
+async function hydratePartData(
+  part: GmailPayloadPart,
+  accessToken: string,
+  messageId: string
+) {
+  if (!part.body?.data && part.body?.attachmentId) {
+    part.body.data = await fetchAttachmentData(
+      accessToken,
+      messageId,
+      part.body.attachmentId
+    );
+  }
+
+  if (!part.parts?.length) {
+    return;
+  }
+
+  for (const child of part.parts) {
+    await hydratePartData(child, accessToken, messageId);
+  }
+}
+
+async function hydrateMessagePayload(message: GmailMessageResponse, accessToken: string) {
+  const payload = message.payload;
+  if (!payload) {
+    return;
+  }
+
+  if (!payload.body?.data && payload.body?.attachmentId) {
+    payload.body.data = await fetchAttachmentData(
+      accessToken,
+      message.id,
+      payload.body.attachmentId
+    );
+  }
+
+  if (!payload.parts?.length) {
+    return;
+  }
+
+  for (const part of payload.parts) {
+    await hydratePartData(part, accessToken, message.id);
+  }
 }
 
 export async function fetchRecentMessages(accessToken: string, top = 50) {
