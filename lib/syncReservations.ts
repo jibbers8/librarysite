@@ -49,10 +49,10 @@ async function refreshGoogleToken(refreshToken: string) {
   return (await response.json()) as GoogleTokenResponse;
 }
 
-async function getOwnerGoogleAccount() {
-  const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
+async function getOwnerGoogleAccount(ownerEmailOverride?: string) {
+  const ownerEmail = ownerEmailOverride?.toLowerCase() ?? process.env.OWNER_EMAIL?.toLowerCase();
   if (!ownerEmail) {
-    throw new Error("OWNER_EMAIL is required to identify the mailbox owner.");
+    throw new Error("Sign in to an owner account or set OWNER_EMAIL.");
   }
 
   const user = await prisma.user.findUnique({
@@ -74,8 +74,8 @@ async function getOwnerGoogleAccount() {
   return account;
 }
 
-async function getValidAccessToken() {
-  const account = await getOwnerGoogleAccount();
+async function getValidAccessToken(ownerEmailOverride?: string) {
+  const account = await getOwnerGoogleAccount(ownerEmailOverride);
 
   const nowInSeconds = Math.floor(Date.now() / 1000);
   const expiresSoon = !account.expires_at || account.expires_at < nowInSeconds + 60;
@@ -105,13 +105,13 @@ async function getValidAccessToken() {
   return refreshed.access_token;
 }
 
-export async function syncReservations() {
+export async function syncReservations(ownerEmailOverride?: string) {
   const syncLog = await prisma.syncLog.create({
     data: {},
   });
 
   try {
-    const accessToken = await getValidAccessToken();
+    const accessToken = await getValidAccessToken(ownerEmailOverride);
     const messages = await fetchRecentMessages(accessToken, 75);
 
     let parsedCount = 0;

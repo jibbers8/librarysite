@@ -17,14 +17,16 @@ type OwnerPageProps = {
 async function triggerSync() {
   "use server";
   const session = await getServerAuthSession();
-  const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
   const sessionEmail = session?.user?.email?.toLowerCase();
-  const isOwner = Boolean(ownerEmail && sessionEmail && ownerEmail === sessionEmail);
-  if (!isOwner) {
-    throw new Error("Only the owner can run a sync.");
+  if (!sessionEmail) {
+    redirect("/owner?syncError=not-signed-in");
   }
 
-  await syncReservations();
+  try {
+    await syncReservations(sessionEmail);
+  } catch {
+    redirect("/owner?syncError=sync-failed");
+  }
 
   redirect("/owner");
 }
@@ -34,6 +36,10 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
   const authError =
     typeof resolvedSearchParams.error === "string"
       ? resolvedSearchParams.error
+      : undefined;
+  const syncError =
+    typeof resolvedSearchParams.syncError === "string"
+      ? resolvedSearchParams.syncError
       : undefined;
   const session = await getServerAuthSession();
   const ownerEmail = process.env.OWNER_EMAIL?.toLowerCase();
@@ -56,6 +62,12 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
         <div className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-700">
           Google sign-in failed (`error={authError}`). Check Google OAuth redirect
           URIs, Google client ID/secret env vars, and `NEXTAUTH_SECRET` in Vercel.
+        </div>
+      )}
+      {syncError && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+          Sync failed (`syncError={syncError}`). Make sure you are signed in to the
+          Gmail account receiving forwarded reservation emails, then try again.
         </div>
       )}
 
