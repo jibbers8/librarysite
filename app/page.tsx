@@ -68,9 +68,6 @@ export default async function Home() {
             Auto-synced from forwarded Gmail reservation emails.
           </p>
         </div>
-        <a className="text-sm underline" href="/owner">
-          Owner Console
-        </a>
       </div>
       {!loadError && (
         <div
