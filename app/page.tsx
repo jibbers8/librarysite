@@ -62,7 +62,6 @@ export default async function Home() {
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl p-6">
-      <LibCalSearchTool />
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold">Current Library Reservations</h1>
@@ -70,6 +69,7 @@ export default async function Home() {
             Auto-synced from forwarded Gmail reservation emails.
           </p>
         </div>
+        <LibCalSearchTool />
       </div>
       {!loadError && (
         <div
