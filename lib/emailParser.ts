@@ -42,12 +42,26 @@ function normalizeReservationText(text: string) {
   return decoded.replace(/\s+/g, " ").trim();
 }
 
+function parseDateTime(dateText: string, timeText: string) {
+  const direct = new Date(`${dateText} ${timeText}`);
+  if (!Number.isNaN(direct.getTime())) {
+    return direct;
+  }
+
+  // Fallback for formats that include weekday prefix before the real date.
+  const withoutWeekday = dateText.replace(/^[A-Za-z]+,\s*/, "");
+  const fallback = new Date(`${withoutWeekday} ${timeText}`);
+  return Number.isNaN(fallback.getTime()) ? undefined : fallback;
+}
+
 function parseReservationWindow(text: string) {
   const compact = normalizeReservationText(text);
   const patterns = [
-    /reservation is confirmed for:\s*([^:]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
-    /(?:for:\s*)?([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
-    /(?:for:\s*)?([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m)\s*-\s*([0-9]{1,2}:[0-9]{2}\s*[ap]m),\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+    // Exact format from forwarded reservation lines:
+    // B539 - Main Library: 5:00pm - 9:00pm, Wednesday, March 18, 2026
+    /([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+    /reservation is confirmed for:\s*([^:]+):\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m),\s*([A-Za-z]+,\s+[A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
+    /(?:for:\s*)?([A-Za-z0-9][A-Za-z0-9\s\-&/]+):\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m)\s*[-–]\s*([0-9]{1,2}(?::[0-9]{2})?\s*[ap]m),\s*([A-Za-z]+\s+\d{1,2},\s+\d{4})/i,
   ];
 
   let match: RegExpMatchArray | null = null;
@@ -63,13 +77,13 @@ function parseReservationWindow(text: string) {
   }
 
   const [, resourceName, startText, endText, dateText] = match;
-  const start = new Date(`${dateText} ${startText}`);
-  const end = new Date(`${dateText} ${endText}`);
+  const start = parseDateTime(dateText, startText);
+  const end = parseDateTime(dateText, endText);
 
   return {
     resourceName: resourceName.trim(),
-    startsAt: Number.isNaN(start.getTime()) ? undefined : start,
-    endsAt: Number.isNaN(end.getTime()) ? undefined : end,
+    startsAt: start,
+    endsAt: end,
   };
 }
 
