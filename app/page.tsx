@@ -24,6 +24,14 @@ function formatDate(value: Date | null) {
   }).format(value);
 }
 
+function formatTucsonTime(value: Date) {
+  return `${new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Phoenix",
+  }).format(value)} Tucson`;
+}
+
 export default async function Home() {
   let reservations: ReservationView[] = [];
   let latestAutoSync:
@@ -73,7 +81,7 @@ export default async function Home() {
         >
           Auto-sync: <span className="font-medium">{autoSyncHealthy ? "Working" : "Check owner console"}</span>
           {latestAutoSync ? (
-            <> (last auto-sync {new Date(latestAutoSync.startedAt).toLocaleString()})</>
+            <> (last auto-sync {formatTucsonTime(new Date(latestAutoSync.startedAt))})</>
           ) : (
             <> (no auto-sync runs yet)</>
           )}

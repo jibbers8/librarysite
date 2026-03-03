@@ -14,6 +14,14 @@ type OwnerPageProps = {
     | Promise<Record<string, string | string[] | undefined>>;
 };
 
+function formatTucsonTime(value: Date) {
+  return `${new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "America/Phoenix",
+  }).format(value)} Tucson`;
+}
+
 async function triggerSync() {
   "use server";
   const session = await getServerAuthSession();
@@ -119,7 +127,7 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
           {latestSync && (
             <div className="text-sm text-zinc-600">
               Latest sync: {latestSync.status} at{" "}
-              {new Date(latestSync.startedAt).toLocaleString()}
+              {formatTucsonTime(new Date(latestSync.startedAt))}
             </div>
           )}
           <div
@@ -134,7 +142,7 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
               {autoSyncHealthy ? "Healthy" : "Needs attention"}
             </span>
             {latestAutoSync ? (
-              <> (last auto-sync {new Date(latestAutoSync.startedAt).toLocaleString()})</>
+              <> (last auto-sync {formatTucsonTime(new Date(latestAutoSync.startedAt))})</>
             ) : (
               <> (no auto-sync runs recorded yet)</>
             )}
