@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Library Reservations Site
 
-## Getting Started
+Public website for friends to see your current library reservations, synced from Outlook confirmation emails.
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Next.js (App Router + TypeScript)
+- NextAuth with Microsoft OAuth
+- Prisma + PostgreSQL
+- Microsoft Graph API (`Mail.Read`)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local Setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Run automated setup:
+   - `npm run setup`
+2. Open `.env.local` and fill only values that must come from your accounts:
+   - `DATABASE_URL`
+   - `OWNER_EMAIL`
+   - `MICROSOFT_CLIENT_ID`
+   - `MICROSOFT_CLIENT_SECRET`
+3. If you changed `DATABASE_URL`, run:
+   - `npm run prisma:push`
+4. Start:
+   - `npm run dev`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Visit:
+- `http://localhost:3000` for the public reservations page
+- `http://localhost:3000/owner` for owner sign-in and manual sync
 
-## Learn More
+## Microsoft App Registration
 
-To learn more about Next.js, take a look at the following resources:
+Create an app registration in Azure/Microsoft Entra:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Supported account type: your account type (personal + org if needed)
+- Redirect URI:
+  - `http://localhost:3000/api/auth/callback/azure-ad`
+  - `https://<your-vercel-domain>/api/auth/callback/azure-ad`
+- API permissions (delegated):
+  - `openid`
+  - `profile`
+  - `email`
+  - `offline_access`
+  - `User.Read`
+  - `Mail.Read`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Then place client ID, client secret, and tenant ID in environment variables.
 
-## Deploy on Vercel
+Helper command (prints exact callback URLs for your current env/domain):
+- `npm run callbacks`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Sync Behavior
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Manual sync: owner can trigger from `/owner`.
+- Scheduled sync: Vercel Cron calls `/api/cron/sync` every hour (`vercel.json`).
+- Public page only displays normalized reservation metadata from the database.
+
+## Deploying on Vercel
+
+1. Import this project into Vercel.
+2. Set all environment variables from `.env.local` or `.env.example`.
+3. Ensure the database is reachable from Vercel.
+4. Deploy and sign in once at `/owner` to authorize Outlook access.
+
+## GitHub First Workflow
+
+1. Push this project to GitHub.
+2. CI runs automatically via `.github/workflows/ci.yml` (lint + build).
+3. Connect the GitHub repo to Vercel.
+4. Add the same env vars in Vercel Project Settings.
+5. Add Microsoft production callback URL using your Vercel domain.
