@@ -39,6 +39,57 @@ type GmailMessageResponse = {
   };
 };
 
+const SLEEP_MS_BETWEEN_MESSAGE_FETCHES = 120;
+const MAX_GMAIL_RETRIES = 4;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(retryAfterHeader: string | null) {
+  if (!retryAfterHeader) {
+    return undefined;
+  }
+
+  const seconds = Number(retryAfterHeader);
+  if (!Number.isNaN(seconds)) {
+    return seconds * 1000;
+  }
+
+  const targetTime = Date.parse(retryAfterHeader);
+  if (Number.isNaN(targetTime)) {
+    return undefined;
+  }
+
+  return Math.max(0, targetTime - Date.now());
+}
+
+async function fetchWithRetry(url: string, accessToken: string) {
+  for (let attempt = 0; attempt <= MAX_GMAIL_RETRIES; attempt += 1) {
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (response.ok) {
+      return response;
+    }
+
+    const isRateLimited = response.status === 429 || response.status === 403;
+    if (!isRateLimited || attempt === MAX_GMAIL_RETRIES) {
+      return response;
+    }
+
+    const retryAfter = parseRetryAfterMs(response.headers.get("retry-after"));
+    const fallbackBackoff = 600 * 2 ** attempt;
+    const jitter = Math.floor(Math.random() * 250);
+    await sleep((retryAfter ?? fallbackBackoff) + jitter);
+  }
+
+  throw new Error("Unexpected Gmail retry flow failure.");
+}
+
 function decodeBase64Url(input?: string) {
   if (!input) {
     return "";
@@ -120,13 +171,9 @@ function parseFromHeader(fromHeader?: string) {
 }
 
 async function fetchGmailMessage(accessToken: string, id: string) {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    accessToken
   );
 
   if (!response.ok) {
@@ -138,13 +185,9 @@ async function fetchGmailMessage(accessToken: string, id: string) {
 }
 
 export async function fetchRecentMessages(accessToken: string, top = 50) {
-  const listResponse = await fetch(
+  const listResponse = await fetchWithRetry(
     `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${top}&q=newer_than:30d`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
+    accessToken
   );
 
   if (!listResponse.ok) {
@@ -155,7 +198,11 @@ export async function fetchRecentMessages(accessToken: string, top = 50) {
   const listData = (await listResponse.json()) as GmailListResponse;
   const ids = listData.messages?.map((message) => message.id) ?? [];
 
-  const fullMessages = await Promise.all(ids.map((id) => fetchGmailMessage(accessToken, id)));
+  const fullMessages: GmailMessageResponse[] = [];
+  for (const id of ids) {
+    fullMessages.push(await fetchGmailMessage(accessToken, id));
+    await sleep(SLEEP_MS_BETWEEN_MESSAGE_FETCHES);
+  }
 
   return fullMessages.map((message) => {
     const headers = message.payload?.headers;
