@@ -41,12 +41,15 @@ export default async function OwnerPage() {
       </p>
 
       {!session && (
-        <Link
-          className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-          href="/api/auth/signin/google?callbackUrl=/owner"
-        >
-          Sign in with Google
-        </Link>
+        <form action="/api/auth/signin/google" method="get">
+          <input name="callbackUrl" type="hidden" value="/owner" />
+          <button
+            className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+            type="submit"
+          >
+            Sign in with Google
+          </button>
+        </form>
       )}
 
       {session && !isOwner && (
