@@ -18,10 +18,11 @@ function formatDate(value: Date | null) {
     return "TBD";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return `${new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(value);
+    timeZone: "America/Phoenix",
+  }).format(value)} Tucson`;
 }
 
 function formatTucsonTime(value: Date) {
