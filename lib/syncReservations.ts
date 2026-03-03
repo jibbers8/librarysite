@@ -110,30 +110,20 @@ async function getValidAccessToken(ownerEmailOverride?: string) {
 }
 
 function getRetentionDays() {
-  const reservationDays = Number.parseInt(
-    process.env.RESERVATION_RETENTION_DAYS ?? "180",
-    10
-  );
-  const syncLogDays = Number.parseInt(process.env.SYNC_LOG_RETENTION_DAYS ?? "60", 10);
+  const syncLogHours = Number.parseInt(process.env.SYNC_LOG_RETENTION_HOURS ?? "48", 10);
 
   return {
-    reservationDays:
-      Number.isNaN(reservationDays) || reservationDays < 7 ? 180 : reservationDays,
-    syncLogDays: Number.isNaN(syncLogDays) || syncLogDays < 7 ? 60 : syncLogDays,
+    syncLogHours: Number.isNaN(syncLogHours) || syncLogHours < 1 ? 48 : syncLogHours,
   };
 }
 
 async function cleanupOldData() {
-  const { reservationDays, syncLogDays } = getRetentionDays();
-
-  const reservationCutoff = new Date(
-    Date.now() - reservationDays * 24 * 60 * 60 * 1000
-  );
-  const syncLogCutoff = new Date(Date.now() - syncLogDays * 24 * 60 * 60 * 1000);
+  const { syncLogHours } = getRetentionDays();
+  const reservationCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const syncLogCutoff = new Date(Date.now() - syncLogHours * 60 * 60 * 1000);
 
   const reservations = await prisma.reservation.deleteMany({
     where: {
-      syncedAt: { lt: reservationCutoff },
       OR: [
         { status: "CANCELED" },
         { status: "EXPIRED" },

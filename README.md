@@ -54,9 +54,9 @@ Helper command (prints exact callback URLs for your current env/domain):
 - Backup sync: Vercel Cron runs daily (`vercel.json`) to satisfy Hobby plan limits.
 - Public page only displays normalized reservation metadata from the database.
 - Automatic cleanup runs after sync:
-  - old `Reservation` rows are pruned (default 180 days)
-  - old `SyncLog` rows are pruned (default 60 days)
-  - configure via `RESERVATION_RETENTION_DAYS` and `SYNC_LOG_RETENTION_DAYS`
+  - reservations are removed 24 hours after `endsAt`/`holdUntil`
+  - old `SyncLog` rows are pruned (default 48 hours)
+  - configure sync log retention via `SYNC_LOG_RETENTION_HOURS`
 
 ### GitHub Scheduled Sync Setup
 
