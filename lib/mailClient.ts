@@ -15,6 +15,7 @@ export type MailMessage = {
       address?: string;
     };
   };
+  calendarIcs?: string;
 };
 
 type GmailListResponse = {
@@ -103,12 +104,13 @@ function decodeBase64Url(input?: string) {
 
 function extractBodyFromPayload(payload?: GmailMessageResponse["payload"]) {
   if (!payload) {
-    return { contentType: "text" as const, content: "" };
+    return { contentType: "text" as const, content: "", calendarIcs: "" };
   }
 
   const stack: GmailPayloadPart[] = [...(payload.parts ?? [])];
   let html = "";
   let text = "";
+  let calendarIcs = "";
 
   while (stack.length > 0) {
     const part = stack.pop();
@@ -124,6 +126,8 @@ function extractBodyFromPayload(payload?: GmailMessageResponse["payload"]) {
       html = decodeBase64Url(part.body.data);
     } else if (part.mimeType === "text/plain" && part.body?.data) {
       text = decodeBase64Url(part.body.data);
+    } else if (part.mimeType === "text/calendar" && part.body?.data) {
+      calendarIcs = decodeBase64Url(part.body.data);
     }
   }
 
@@ -137,10 +141,10 @@ function extractBodyFromPayload(payload?: GmailMessageResponse["payload"]) {
   }
 
   if (html) {
-    return { contentType: "html" as const, content: html };
+    return { contentType: "html" as const, content: html, calendarIcs };
   }
 
-  return { contentType: "text" as const, content: text };
+  return { contentType: "text" as const, content: text, calendarIcs };
 }
 
 function headerValue(headers: Array<{ name?: string; value?: string }> | undefined, name: string) {
@@ -186,7 +190,7 @@ async function fetchGmailMessage(accessToken: string, id: string) {
 
 export async function fetchRecentMessages(accessToken: string, top = 50) {
   const listResponse = await fetchWithRetry(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${top}&q=newer_than:30d`,
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=${top}&q=newer_than:180d`,
     accessToken
   );
 
@@ -217,6 +221,7 @@ export async function fetchRecentMessages(accessToken: string, top = 50) {
       subject,
       bodyPreview: message.snippet ?? "",
       body,
+      calendarIcs: body.calendarIcs || undefined,
       receivedDateTime: new Date(receivedMs).toISOString(),
       webLink: `https://mail.google.com/mail/u/0/#inbox/${message.id}`,
       internetMessageId,

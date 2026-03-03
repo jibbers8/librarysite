@@ -22,6 +22,13 @@ export type ParsedReservation = {
   rawPreview?: string;
 };
 
+type ParsedCalendarEvent = {
+  resourceName?: string;
+  pickupLocation?: string;
+  startsAt?: Date;
+  endsAt?: Date;
+};
+
 function extractText(message: MailMessage) {
   const body = message.body?.content ?? "";
 
@@ -52,6 +59,54 @@ function parseDateTime(dateText: string, timeText: string) {
   const withoutWeekday = dateText.replace(/^[A-Za-z]+,\s*/, "");
   const fallback = new Date(`${withoutWeekday} ${timeText}`);
   return Number.isNaN(fallback.getTime()) ? undefined : fallback;
+}
+
+function parseIcsDate(value: string) {
+  const trimmed = value.trim();
+  const zMatch = trimmed.match(
+    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/
+  );
+  if (zMatch) {
+    const [, y, m, d, hh, mm, ss] = zMatch;
+    return new Date(Date.UTC(+y, +m - 1, +d, +hh, +mm, +ss));
+  }
+
+  const localMatch = trimmed.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})$/);
+  if (localMatch) {
+    const [, y, m, d, hh, mm, ss] = localMatch;
+    return new Date(+y, +m - 1, +d, +hh, +mm, +ss);
+  }
+
+  return undefined;
+}
+
+function parseCalendarEvent(ics?: string): ParsedCalendarEvent {
+  if (!ics) {
+    return {};
+  }
+
+  const startMatch = ics.match(/DTSTART(?:;[^:\n]+)?:([^\r\n]+)/i);
+  const endMatch = ics.match(/DTEND(?:;[^:\n]+)?:([^\r\n]+)/i);
+  const summaryMatch = ics.match(/SUMMARY:([^\r\n]+)/i);
+  const locationMatch = ics.match(/LOCATION:([^\r\n]+)/i);
+
+  const startsAt = startMatch ? parseIcsDate(startMatch[1]) : undefined;
+  const endsAt = endMatch ? parseIcsDate(endMatch[1]) : undefined;
+  const summary = summaryMatch?.[1]?.trim();
+  const location = locationMatch?.[1]?.trim();
+
+  let resourceName: string | undefined;
+  if (summary) {
+    const bookingMatch = summary.match(/Booking:\s*(.+?)(?:\s*-\s*[^-]+@[^-]+)?$/i);
+    resourceName = bookingMatch?.[1]?.trim() || summary;
+  }
+
+  return {
+    resourceName,
+    pickupLocation: location,
+    startsAt,
+    endsAt,
+  };
 }
 
 function parseReservationWindow(text: string) {
@@ -130,6 +185,7 @@ export function isPotentialReservationEmail(message: MailMessage) {
 export function parseReservationEmail(message: MailMessage): ParsedReservation {
   const text = normalizeReservationText(extractText(message));
   const reservationWindow = parseReservationWindow(text);
+  const calendarEvent = parseCalendarEvent(message.calendarIcs);
   const lowerText = text.toLowerCase();
 
   const cancellationUrlMatch = text.match(/https?:\/\/\S*cancel\S*/i);
@@ -149,10 +205,10 @@ export function parseReservationEmail(message: MailMessage): ParsedReservation {
 
   return {
     reservationKind: detectReservationKind(message.subject ?? "", text),
-    resourceName: reservationWindow.resourceName,
-    pickupLocation,
-    startsAt: reservationWindow.startsAt,
-    endsAt: reservationWindow.endsAt,
+    resourceName: reservationWindow.resourceName ?? calendarEvent.resourceName,
+    pickupLocation: pickupLocation ?? calendarEvent.pickupLocation,
+    startsAt: reservationWindow.startsAt ?? calendarEvent.startsAt,
+    endsAt: reservationWindow.endsAt ?? calendarEvent.endsAt,
     holdUntil,
     status,
     cancellationUrl: cancellationUrlMatch?.[0],
