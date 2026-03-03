@@ -1,7 +1,17 @@
 import { prisma } from "@/lib/db";
-import type { Reservation } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
+
+type ReservationView = {
+  id: string;
+  subject: string;
+  resourceName: string | null;
+  reservationKind: string;
+  startsAt: Date | null;
+  endsAt: Date | null;
+  holdUntil: Date | null;
+  pickupLocation: string | null;
+};
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -15,7 +25,7 @@ function formatDate(value: Date | null) {
 }
 
 export default async function Home() {
-  const reservations = await prisma.reservation.findMany({
+  const reservations: ReservationView[] = await prisma.reservation.findMany({
     where: {
       status: "CONFIRMED",
       OR: [{ holdUntil: null }, { holdUntil: { gte: new Date() } }],
@@ -44,7 +54,7 @@ export default async function Home() {
         </div>
       ) : (
         <ul className="grid gap-4">
-          {reservations.map((reservation: Reservation) => (
+          {reservations.map((reservation: ReservationView) => (
             <li className="rounded-lg border p-4" key={reservation.id}>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 className="text-lg font-semibold">
