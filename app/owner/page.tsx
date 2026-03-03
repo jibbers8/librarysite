@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getServerAuthSession } from "@/auth";
 import { prisma } from "@/lib/db";
 import { syncReservations } from "@/lib/syncReservations";
+import { SignInButton } from "@/app/owner/sign-in-button";
 
 export const dynamic = "force-dynamic";
 
@@ -59,15 +60,7 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
       )}
 
       {!session && (
-        <form action="/api/auth/signin/google" method="get">
-          <input name="callbackUrl" type="hidden" value="/owner" />
-          <button
-            className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
-            type="submit"
-          >
-            Sign in with Google
-          </button>
-        </form>
+        <SignInButton />
       )}
 
       {session && !isOwner && (
