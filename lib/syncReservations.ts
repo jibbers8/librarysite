@@ -129,6 +129,12 @@ async function cleanupOldData() {
         { status: "EXPIRED" },
         { holdUntil: { lt: reservationCutoff } },
         { endsAt: { lt: reservationCutoff } },
+        {
+          reservationKind: "OTHER",
+          startsAt: null,
+          endsAt: null,
+          holdUntil: null,
+        },
       ],
     },
   });
@@ -165,9 +171,15 @@ export async function syncReservations(options: SyncOptions = {}) {
     let parsedCount = 0;
     let upsertedCount = 0;
     let skippedCount = 0;
+    let deletedSkippedReservationCount = 0;
 
     for (const message of messages) {
       if (!isPotentialReservationEmail(message)) {
+        const deleted = await prisma.reservation.deleteMany({
+          where: { messageId: message.id },
+        });
+
+        deletedSkippedReservationCount += deleted.count;
         skippedCount += 1;
         continue;
       }
@@ -235,7 +247,8 @@ export async function syncReservations(options: SyncOptions = {}) {
       parsedCount,
       upsertedCount,
       skippedCount,
-      deletedReservationCount: cleanupResult.deletedReservationCount,
+      deletedReservationCount:
+        cleanupResult.deletedReservationCount + deletedSkippedReservationCount,
       deletedSyncLogCount: cleanupResult.deletedSyncLogCount,
     } satisfies SyncResult;
   } catch (error) {

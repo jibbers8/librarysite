@@ -2,13 +2,16 @@ import { htmlToText } from "html-to-text";
 
 import type { MailMessage } from "@/lib/mailClient";
 
-const ALLOWED_SENDER_PATTERNS = [
+const LIBRARY_SENDER_PATTERNS = [
   /@mail\.libcal\.com$/i,
   /@library\.arizona\.edu$/i,
 ];
 
-const RESERVATION_SUBJECT_PATTERN =
-  /(reservation|hold ready|room reservation|request|pickup|library)/i;
+const LIBRARY_CONTEXT_PATTERN =
+  /\b(libcal|library\.arizona\.edu|university of arizona librar(?:y|ies)|main library|weaver|health sciences library)\b/i;
+
+const BOOKING_CONTEXT_PATTERN =
+  /\b(reservation|booking|hold ready|pickup|pick-up|room)\b/i;
 
 export type ParsedReservation = {
   reservationKind: "ROOM" | "BOOK" | "EQUIPMENT" | "OTHER";
@@ -175,11 +178,14 @@ function detectReservationKind(subject: string, text: string): ParsedReservation
 export function isPotentialReservationEmail(message: MailMessage) {
   const sender = message.from?.emailAddress?.address ?? "";
   const subject = message.subject ?? "";
+  const text = normalizeReservationText(extractText(message));
+  const content = `${subject} ${sender} ${text}`;
 
-  const senderMatch = ALLOWED_SENDER_PATTERNS.some((pattern) => pattern.test(sender));
-  const subjectMatch = RESERVATION_SUBJECT_PATTERN.test(subject);
+  const senderMatch = LIBRARY_SENDER_PATTERNS.some((pattern) => pattern.test(sender));
+  const libraryMatch = senderMatch || LIBRARY_CONTEXT_PATTERN.test(content);
+  const bookingMatch = BOOKING_CONTEXT_PATTERN.test(content);
 
-  return senderMatch || subjectMatch;
+  return libraryMatch && bookingMatch;
 }
 
 export function parseReservationEmail(message: MailMessage): ParsedReservation {
