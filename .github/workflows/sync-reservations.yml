@@ -3,8 +3,9 @@ name: Sync Reservations
 on:
   schedule:
     # Avoid the top of the hour, when GitHub says scheduled runs are most likely
-    # to be delayed or dropped under Actions load.
-    - cron: "52 * * * *"
+    # to be delayed or dropped under Actions load. Multiple off-peak ticks make
+    # the sync resilient to an occasional dropped scheduled event.
+    - cron: "17,32,47 * * * *"
   workflow_dispatch:
 
 jobs:

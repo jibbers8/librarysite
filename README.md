@@ -50,7 +50,7 @@ Helper command (prints exact callback URLs for your current env/domain):
 ## Sync Behavior
 
 - Manual sync: owner can trigger from `/owner`.
-- Scheduled sync: GitHub Actions runs hourly and calls `/api/cron/sync`.
+- Scheduled sync: GitHub Actions runs three off-peak times per hour and calls `/api/cron/sync`.
 - Backup sync: Vercel Cron runs daily (`vercel.json`) to satisfy Hobby plan limits.
 - Public page only displays normalized reservation metadata from the database.
 - Automatic cleanup runs after sync:
