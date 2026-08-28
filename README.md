@@ -52,6 +52,7 @@ Helper command (prints exact callback URLs for your current env/domain):
 - Manual sync: owner can trigger from `/owner`.
 - Scheduled sync: GitHub Actions runs three off-peak times per hour and calls `/api/cron/sync`.
 - Backup sync: Vercel Cron runs daily (`vercel.json`) to satisfy Hobby plan limits.
+- Stale sync recovery: public page visits queue a background sync if the latest auto-sync is over 75 minutes old.
 - Public page only displays normalized reservation metadata from the database.
 - Automatic cleanup runs after sync:
   - reservations are removed 24 hours after `endsAt`/`holdUntil`

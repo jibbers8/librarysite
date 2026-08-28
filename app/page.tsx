@@ -1,4 +1,7 @@
+import { after } from "next/server";
+
 import { prisma } from "@/lib/db";
+import { syncReservations } from "@/lib/syncReservations";
 import { LibCalSearchTool } from "@/app/libcal-search-tool";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +16,38 @@ type ReservationView = {
   holdUntil: Date | null;
   pickupLocation: string | null;
 };
+
+type AutoSyncStatus = { startedAt: Date; status: "RUNNING" | "SUCCESS" | "FAILURE" };
+
+const AUTO_SYNC_STALE_MS = 75 * 60 * 1000;
+const AUTO_SYNC_RUNNING_GRACE_MS = 10 * 60 * 1000;
+
+function shouldQueueAutoSync(latestAutoSync: AutoSyncStatus | null) {
+  if (!latestAutoSync) {
+    return true;
+  }
+
+  const ageMs = Date.now() - latestAutoSync.startedAt.getTime();
+  if (latestAutoSync.status === "RUNNING" && ageMs < AUTO_SYNC_RUNNING_GRACE_MS) {
+    return false;
+  }
+
+  return ageMs > AUTO_SYNC_STALE_MS;
+}
+
+function queueStaleAutoSync(latestAutoSync: AutoSyncStatus | null) {
+  if (!shouldQueueAutoSync(latestAutoSync)) {
+    return;
+  }
+
+  after(async () => {
+    try {
+      await syncReservations({ trigger: "CRON" });
+    } catch (error) {
+      console.error("Background stale auto-sync failed", error);
+    }
+  });
+}
 
 function formatDate(value: Date | null) {
   if (!value) {
@@ -36,9 +71,7 @@ function formatTucsonTime(value: Date) {
 
 export default async function Home() {
   let reservations: ReservationView[] = [];
-  let latestAutoSync:
-    | { startedAt: Date; status: "RUNNING" | "SUCCESS" | "FAILURE" }
-    | null = null;
+  let latestAutoSync: AutoSyncStatus | null = null;
   let loadError = false;
 
   try {
@@ -55,10 +88,18 @@ export default async function Home() {
       orderBy: { startedAt: "desc" },
       select: { startedAt: true, status: true },
     });
+    queueStaleAutoSync(latestAutoSync);
   } catch {
     loadError = true;
   }
-  const autoSyncHealthy = latestAutoSync?.status === "SUCCESS";
+  const autoSyncNeedsRefresh = !loadError && shouldQueueAutoSync(latestAutoSync);
+  const autoSyncHealthy =
+    latestAutoSync?.status === "SUCCESS" && !autoSyncNeedsRefresh;
+  const autoSyncLabel = autoSyncHealthy
+    ? "Working"
+    : autoSyncNeedsRefresh
+      ? "Refreshing"
+      : "Check owner console";
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-4xl p-6">
@@ -79,7 +120,7 @@ export default async function Home() {
               : "border-amber-300 bg-amber-50 text-amber-800"
           }`}
         >
-          Auto-sync: <span className="font-medium">{autoSyncHealthy ? "Working" : "Check owner console"}</span>
+          Auto-sync: <span className="font-medium">{autoSyncLabel}</span>
           {latestAutoSync ? (
             <> (last auto-sync {formatTucsonTime(new Date(latestAutoSync.startedAt))})</>
           ) : (
