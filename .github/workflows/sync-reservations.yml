@@ -2,7 +2,9 @@ name: Sync Reservations
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    # Avoid the top of the hour, when GitHub says scheduled runs are most likely
+    # to be delayed or dropped under Actions load.
+    - cron: "52 * * * *"
   workflow_dispatch:
 
 jobs:
