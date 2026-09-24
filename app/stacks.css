@@ -1001,3 +1001,268 @@ details[open] > .stx-spine {
     transition: none !important;
   }
 }
+
+/* ---------- Bookworm: a pixel snake clone on the side ---------- */
+
+.stx-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* A pixel book spine poking out of the right edge of the page. */
+.stx-worm-tab {
+  position: fixed;
+  z-index: 55;
+  top: 50%;
+  right: 0;
+  padding: 18px 8px;
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+  color: #e4c878;
+  background:
+    linear-gradient(to bottom, transparent 8px, #e4c878 8px 10px, transparent 10px calc(100% - 10px), #e4c878 calc(100% - 10px) calc(100% - 8px), transparent calc(100% - 8px)),
+    #6d1f2c;
+  box-shadow: inset 4px 0 0 #8f3444, inset 0 -4px 0 #4a1420, -4px 4px 0 rgb(0 0 0 / 0.3);
+  font-family: var(--font-pixel), monospace;
+  font-size: 16px;
+  line-height: 1;
+  writing-mode: vertical-rl;
+  transform: translateY(-50%);
+  transition: transform 0.12s steps(2);
+}
+
+.stx-worm-tab:hover,
+.stx-worm-tab[aria-expanded="true"] {
+  transform: translate(-4px, -50%);
+}
+
+.stx-worm-tab:focus-visible {
+  outline: 4px solid var(--focus);
+  outline-offset: 0;
+}
+
+.stx-worm {
+  --worm-ink: #2a2620;
+  --worm-gilt: #e4c878;
+  --worm-paper: #efe8d6;
+  position: fixed;
+  z-index: 60;
+  top: 50%;
+  right: 24px;
+  width: calc(312px + 24px);
+  padding: 12px;
+  color: var(--worm-paper);
+  background: var(--worm-ink);
+  border: 4px solid var(--worm-gilt);
+  box-shadow: 0 0 0 4px var(--worm-ink), 12px 12px 0 4px rgb(0 0 0 / 0.3);
+  box-sizing: content-box;
+  font-family: var(--font-pixel), monospace;
+  font-size: 16px;
+  line-height: 1.25;
+  visibility: hidden;
+  transform: translate(calc(100% + 64px), -50%);
+  /* Stepped slide: the panel arrives in a few chunky frames. */
+  transition: transform 0.24s steps(4), visibility 0s linear 0.24s;
+}
+
+.stx-worm[data-open] {
+  visibility: visible;
+  transform: translate(0, -50%);
+  transition: transform 0.24s steps(4), visibility 0s;
+}
+
+.stx-worm:focus {
+  outline: none;
+}
+
+.stx-worm__bar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--worm-gilt);
+}
+
+.stx-worm__screen {
+  position: relative;
+  width: 312px;
+  height: 312px;
+  box-shadow: 0 0 0 4px #4a4236;
+}
+
+.stx-worm__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  touch-action: none;
+  cursor: pointer;
+}
+
+/* 2px checker dither instead of a smooth translucent veil. */
+.stx-worm__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  background: repeating-conic-gradient(rgb(42 38 32 / 0.92) 0 25%, rgb(42 38 32 / 0.6) 0 50%) 0 0 / 4px 4px;
+  pointer-events: none;
+}
+
+.stx-worm__overlay p {
+  margin: 0;
+}
+
+.stx-worm__title {
+  color: var(--worm-gilt);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 4px 4px 0 #6d1f2c;
+}
+
+.stx-worm__stamp {
+  padding: 4px 12px;
+  border: 4px solid currentColor;
+  color: #c3a8ff;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  animation: stx-worm-stamp 0.24s steps(3) both;
+}
+
+@keyframes stx-worm-stamp {
+  from {
+    opacity: 0;
+    transform: scale(2);
+  }
+}
+
+.stx-worm__blink {
+  color: var(--worm-gilt);
+  animation: stx-worm-blink 1s steps(1) infinite;
+}
+
+@keyframes stx-worm-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* On-screen pad for touch screens only. */
+.stx-worm__pad {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .stx-worm__pad {
+    display: grid;
+    grid-template-columns: repeat(3, 56px);
+    grid-template-rows: repeat(2, 48px);
+    gap: 4px;
+    justify-content: center;
+    margin-top: 12px;
+  }
+
+  .stx-worm__pad button:nth-child(1) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .stx-worm__pad button:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .stx-worm__pad button:nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  .stx-worm__pad button:nth-child(4) {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .stx-worm__keys {
+    display: none;
+  }
+}
+
+.stx-worm__pad button {
+  border: 0;
+  border-radius: 0;
+  color: var(--worm-gilt);
+  background: #3a342c;
+  box-shadow: inset 0 0 0 4px #4a4236, 0 4px 0 #15120e;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+.stx-worm__pad button:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 0 0 4px #4a4236;
+}
+
+.stx-worm__foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  color: #a79f8c;
+}
+
+.stx-worm__close {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 0;
+  color: var(--worm-paper);
+  background: transparent;
+  box-shadow: inset 0 0 0 4px #4a4236;
+  cursor: pointer;
+  font: inherit;
+}
+
+.stx-worm__close:hover {
+  background: #3a342c;
+}
+
+.stx-worm__close:focus-visible,
+.stx-worm__pad button:focus-visible {
+  outline: 4px solid var(--worm-gilt);
+  outline-offset: 0;
+}
+
+@media (max-width: 540px) {
+  .stx-worm-tab {
+    top: auto;
+    bottom: 96px;
+    transform: none;
+  }
+
+  .stx-worm-tab:hover,
+  .stx-worm-tab[aria-expanded="true"] {
+    transform: translateX(-4px);
+  }
+
+  .stx-worm {
+    right: auto;
+    left: 50%;
+    transform: translate(-50%, calc(50vh + 60%));
+  }
+
+  .stx-worm[data-open] {
+    transform: translate(-50%, -50%);
+  }
+}

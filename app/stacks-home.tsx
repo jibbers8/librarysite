@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 
+import { Bookworm } from "@/app/bookworm";
 import { StacksRoomFinder } from "@/app/stacks-room-finder";
 import { ThemeToggle } from "@/app/theme-toggle";
 import {
@@ -234,6 +235,8 @@ export function StacksHome({
           <ThemeToggle className="stx-link" current="stacks" />
         </footer>
       </div>
+
+      <Bookworm />
     </div>
   );
 }
