@@ -1,6 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 
 /*
  * Bookworm: a pixel snake clone. The worm wears reading glasses, its body is a
@@ -178,16 +188,127 @@ function newGame(): Game {
   };
 }
 
-export function Bookworm() {
+type BookwormState = {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+  best: number;
+  setBest: (best: number) => void;
+  panelId: string;
+  triggerRef: RefObject<HTMLButtonElement | null>;
+};
+
+const BookwormContext = createContext<BookwormState | null>(null);
+
+function useBookworm() {
+  const state = useContext(BookwormContext);
+  if (!state) throw new Error("Bookworm parts must be inside <BookwormProvider>.");
+  return state;
+}
+
+/** Shares open state between the worm in the header and the game drawer. */
+export function BookwormProvider({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [best, setBest] = useState(0);
+  const panelId = useId();
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  return (
+    <BookwormContext.Provider value={{ open, setOpen, best, setBest, panelId, triggerRef }}>
+      {children}
+    </BookwormContext.Provider>
+  );
+}
+
+// The idle inchworm, 20x10 pixels: flat, then arched mid-inch. H is highlight, E the pupil.
+const WORM_FLAT_MAP = [
+  "....................",
+  "..............OOOO..",
+  ".............OHHHHO.",
+  ".............OWOOOOO",
+  "..OOOOOOOOOOOOWOhEOO",
+  ".OHHHHHHHHHHHHWOOOOO",
+  "OWWWWWWWWWWWWWWWWWWO",
+  "OwWWwWWwWWwWWwWWWOWO",
+  ".OwwwwwwwwwwwwwwwwO.",
+  "..OOOOOOOOOOOOOOOO..",
+];
+
+const WORM_ARCHED_MAP = [
+  "......OOOOO.........",
+  ".....OHHHHHO..OOOO..",
+  "....OHWWWWWHOOHHHHO.",
+  "...OWWO...OWWOWOOOOO",
+  "...OWWO...OWWWWOhEOO",
+  "..OHWWO...OWWWWOOOOO",
+  "..OWWWO...OWWWWWWWWO",
+  "..OwWwO...OwWwWWWOWO",
+  "..OwwwO...OwwwwwwwO.",
+  "...OOO.....OOOOOOO..",
+];
+
+const WORM_COLORS: Record<string, string> = {
+  O: PAL.O,
+  W: PAL.W,
+  w: PAL.w,
+  H: "#f2b6a8",
+  h: PAL.h,
+  E: PAL.O,
+};
+
+function mapPixels(map: string[]) {
+  const px: Array<[number, number, string]> = [];
+  map.forEach((row, y) =>
+    row.split("").forEach((key, x) => {
+      if (key !== ".") px.push([x, y, WORM_COLORS[key]]);
+    }),
+  );
+  return px;
+}
+
+const WORM_FLAT = mapPixels(WORM_FLAT_MAP);
+const WORM_ARCHED = mapPixels(WORM_ARCHED_MAP);
+
+/** A little pixel inchworm; clicking it opens the game. */
+export function BookwormTrigger() {
+  const { open, setOpen, setBest, best, panelId, triggerRef } = useBookworm();
+  return (
+    <button
+      aria-controls={panelId}
+      aria-expanded={open}
+      aria-label="Play Bookworm"
+      className="stx-inchworm"
+      onClick={() => {
+        if (!open) setBest(Math.max(best, readBest()));
+        setOpen(!open);
+      }}
+      ref={triggerRef}
+      type="button"
+    >
+      <span aria-hidden className="stx-inchworm__bubble">
+        Play?
+      </span>
+      <svg aria-hidden className="stx-inchworm__sprite" shapeRendering="crispEdges" viewBox="0 0 20 10">
+        <g className="stx-inchworm__flat">
+          {WORM_FLAT.map(([x, y, fill]) => (
+            <rect fill={fill} height="1" key={`f${x}-${y}`} width="1" x={x} y={y} />
+          ))}
+        </g>
+        <g className="stx-inchworm__arched">
+          {WORM_ARCHED.map(([x, y, fill]) => (
+            <rect fill={fill} height="1" key={`a${x}-${y}`} width="1" x={x} y={y} />
+          ))}
+        </g>
+      </svg>
+    </button>
+  );
+}
+
+export function Bookworm() {
+  const { open, setOpen, best, setBest, panelId, triggerRef } = useBookworm();
   const [status, setStatus] = useState<Status>("ready");
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(0);
   const [newBest, setNewBest] = useState(false);
-  const panelId = useId();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const tabRef = useRef<HTMLButtonElement>(null);
   const gameRef = useRef<Game>(newGame());
   const statusRef = useRef<Status>("ready");
   const timerRef = useRef<number | undefined>(undefined);
@@ -235,7 +356,7 @@ export function Bookworm() {
       saveBest(final);
       setBest(final);
     }
-  }, [best, setStatusBoth, stopLoop]);
+  }, [best, setBest, setStatusBoth, stopLoop]);
 
   const step = useCallback(() => {
     const game = gameRef.current;
@@ -320,8 +441,8 @@ export function Bookworm() {
       stopLoop();
       setStatusBoth("paused");
     }
-    tabRef.current?.focus();
-  }, [setStatusBoth, stopLoop]);
+    triggerRef.current?.focus();
+  }, [setOpen, setStatusBoth, stopLoop, triggerRef]);
 
   useEffect(() => {
     draw();
@@ -401,24 +522,6 @@ export function Bookworm() {
 
   return (
     <>
-      <button
-        aria-controls={panelId}
-        aria-expanded={open}
-        className="stx-worm-tab"
-        onClick={() => {
-          if (open) {
-            close();
-          } else {
-            setBest((prev) => Math.max(prev, readBest()));
-            setOpen(true);
-          }
-        }}
-        ref={tabRef}
-        type="button"
-      >
-        <span>Bookworm</span>
-      </button>
-
       <div
         aria-label="Bookworm game"
         className="stx-worm"

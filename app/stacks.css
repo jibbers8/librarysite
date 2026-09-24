@@ -1013,37 +1013,122 @@ details[open] > .stx-spine {
   white-space: nowrap;
 }
 
-/* A pixel book spine poking out of the right edge of the page. */
-.stx-worm-tab {
-  position: fixed;
-  z-index: 55;
-  top: 50%;
-  right: 0;
-  padding: 18px 8px;
+/*
+ * A pixel inchworm crawling along the baseline of "Hello", in the gap before the intro text.
+ * Positioned in em of the headline size so it tracks the headline at every width.
+ */
+.stx-head__titlebox {
+  position: relative;
+}
+
+.stx-inchworm {
+  position: absolute;
+  z-index: 2;
+  top: calc(0.81em - 50px);
+  left: calc(3.75em - 50px);
+  padding: 0;
   border: 0;
-  border-radius: 0;
+  background: none;
   cursor: pointer;
-  color: #e4c878;
-  background:
-    linear-gradient(to bottom, transparent 8px, #e4c878 8px 10px, transparent 10px calc(100% - 10px), #e4c878 calc(100% - 10px) calc(100% - 8px), transparent calc(100% - 8px)),
-    #6d1f2c;
-  box-shadow: inset 4px 0 0 #8f3444, inset 0 -4px 0 #4a1420, -4px 4px 0 rgb(0 0 0 / 0.3);
+  font-size: min(20.5cqi, 9.5rem);
+  line-height: 1;
+}
+
+.stx-inchworm__sprite {
+  display: block;
+  width: 100px;
+  height: 50px;
+  overflow: visible;
+}
+
+/* Two-frame inch: arch up, flatten, pause. Faster while hovered. */
+.stx-inchworm__arched {
+  opacity: 0;
+  animation: stx-inch 2.4s steps(1) infinite;
+}
+
+.stx-inchworm__flat {
+  animation: stx-inch-flat 2.4s steps(1) infinite;
+}
+
+.stx-inchworm:hover .stx-inchworm__arched,
+.stx-inchworm:hover .stx-inchworm__flat,
+.stx-inchworm:focus-visible .stx-inchworm__arched,
+.stx-inchworm:focus-visible .stx-inchworm__flat {
+  animation-duration: 0.6s;
+}
+
+@keyframes stx-inch {
+  0%,
+  60% {
+    opacity: 0;
+  }
+  70%,
+  85% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+}
+
+@keyframes stx-inch-flat {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  70%,
+  85% {
+    opacity: 0;
+  }
+  95% {
+    opacity: 1;
+  }
+}
+
+/* Pixel speech bubble. */
+.stx-inchworm__bubble {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 60px;
+  padding: 4px 6px 2px;
+  color: #2a2620;
+  background: #efe8d6;
+  box-shadow: 0 0 0 2px #2a2620, 4px 4px 0 2px rgb(0 0 0 / 0.25);
   font-family: var(--font-pixel), monospace;
   font-size: 16px;
   line-height: 1;
-  writing-mode: vertical-rl;
-  transform: translateY(-50%);
-  transition: transform 0.12s steps(2);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.12s steps(2), transform 0.12s steps(2);
+  pointer-events: none;
 }
 
-.stx-worm-tab:hover,
-.stx-worm-tab[aria-expanded="true"] {
-  transform: translate(-4px, -50%);
+.stx-inchworm__bubble::after {
+  content: "";
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 6px;
+  width: 6px;
+  height: 6px;
+  background:
+    linear-gradient(#2a2620 0 0) 0 0 / 2px 6px no-repeat,
+    linear-gradient(#efe8d6 0 0) 2px 0 / 2px 4px no-repeat,
+    linear-gradient(#2a2620 0 0) 2px 4px / 2px 2px no-repeat,
+    linear-gradient(#2a2620 0 0) 4px 0 / 2px 4px no-repeat;
 }
 
-.stx-worm-tab:focus-visible {
+.stx-inchworm:hover .stx-inchworm__bubble,
+.stx-inchworm:focus-visible .stx-inchworm__bubble,
+.stx-inchworm[aria-expanded="true"] .stx-inchworm__bubble {
+  opacity: 1;
+  transform: none;
+}
+
+.stx-inchworm:focus-visible {
   outline: 4px solid var(--focus);
-  outline-offset: 0;
+  outline-offset: 4px;
 }
 
 .stx-worm {
@@ -1245,17 +1330,6 @@ details[open] > .stx-spine {
 }
 
 @media (max-width: 540px) {
-  .stx-worm-tab {
-    top: auto;
-    bottom: 96px;
-    transform: none;
-  }
-
-  .stx-worm-tab:hover,
-  .stx-worm-tab[aria-expanded="true"] {
-    transform: translateX(-4px);
-  }
-
   .stx-worm {
     right: auto;
     left: 50%;

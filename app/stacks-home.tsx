@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 
-import { Bookworm } from "@/app/bookworm";
+import { Bookworm, BookwormProvider, BookwormTrigger } from "@/app/bookworm";
 import { StacksRoomFinder } from "@/app/stacks-room-finder";
 import { ThemeToggle } from "@/app/theme-toggle";
 import {
@@ -177,11 +177,13 @@ export function StacksHome({
     : "Auto-sync hasn’t succeeded in 6 hours or more. The owner should take a look.";
 
   return (
+    <BookwormProvider>
     <div className="stx">
       <main className="stx-page">
         <header className="stx-head">
           <div className="stx-head__titlebox">
             <h1 className="stx-head__title">Hello Groupchat</h1>
+            <BookwormTrigger />
           </div>
           <div className="stx-head__side">
             <p className="stx-head__lede">
@@ -238,5 +240,6 @@ export function StacksHome({
 
       <Bookworm />
     </div>
+    </BookwormProvider>
   );
 }
