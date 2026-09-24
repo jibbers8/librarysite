@@ -266,14 +266,14 @@ function StacksOwner({
             </>
           )}
         </div>
-
-        <footer className="stx-foot">
-          <Link className="stx-link" href="/">
-            Back to the stack
-          </Link>
-          <ThemeToggle className="stx-link" current="stacks" />
-        </footer>
       </main>
+
+      <footer className="stx-foot">
+        <Link className="stx-link" href="/">
+          Back to the stack
+        </Link>
+        <ThemeToggle className="stx-link" current="stacks" />
+      </footer>
     </div>
   );
 }

@@ -32,7 +32,8 @@ function seeded(id: string, salt: number) {
   return ((hash >>> 0) % 1000) / 1000;
 }
 
-function spineLabelLines(reservation: ReservationView) {
+/** Returns the spine label as [small line, big line]. */
+function spineLabelLines(reservation: ReservationView): [string, string] {
   const { startsAt, endsAt } = reservation;
   // Step back 1ms so a booking that ends at midnight still counts as one day.
   if (startsAt && endsAt && !isSameTucsonDay(startsAt, new Date(endsAt.getTime() - 1))) {
@@ -44,7 +45,25 @@ function spineLabelLines(reservation: ReservationView) {
   if (reservation.holdUntil) {
     return ["Pick up by", formatDay(reservation.holdUntil)];
   }
-  return ["Date", "not set yet"];
+  return ["Date", "Not set yet"];
+}
+
+function slipRows(reservation: ReservationView, place: string | null) {
+  const rows: Array<[string, string]> = [];
+  if (reservation.startsAt) {
+    rows.push(["Starts", formatShort(reservation.startsAt)]);
+  }
+  if (reservation.endsAt) {
+    rows.push(["Ends", formatShort(reservation.endsAt)]);
+  }
+  if (reservation.holdUntil) {
+    rows.push(["Hold until", formatShort(reservation.holdUntil)]);
+  }
+  if (!reservation.startsAt && !reservation.endsAt && !reservation.holdUntil) {
+    rows.push(["When", "Not in the email"]);
+  }
+  rows.push(["Where", reservation.pickupLocation || place || "Not in the email"]);
+  return rows;
 }
 
 function Book({
@@ -61,7 +80,11 @@ function Book({
   const { title, place } = splitResourceName(reservation.resourceName || reservation.subject);
   const kindName = KIND_NAMES[reservation.reservationKind] ?? "Other";
   const live = isInProgress(reservation, now);
-  const [labelDay, labelTime] = spineLabelLines(reservation);
+  const ended = !!reservation.endsAt && reservation.endsAt.getTime() <= now.getTime();
+  const [labelSmall, labelBig] =
+    live && reservation.endsAt
+      ? ["In use now", `until ${formatClock(reservation.endsAt)}`]
+      : spineLabelLines(reservation);
 
   const width = 84 + seeded(reservation.id, 1) * 16;
   const style = {
@@ -72,52 +95,48 @@ function Book({
     "--book-delay": `${Math.min(total - 1 - index, 10) * 85}ms`,
   } as CSSProperties;
 
-  const placeLine = [place ?? reservation.pickupLocation, live && reservation.endsAt ? `in use until ${formatClock(reservation.endsAt)}` : null]
-    .filter(Boolean)
-    .join(", ");
+  const placeLine = place ?? reservation.pickupLocation;
 
   return (
-    <li className="stx-book" data-kind={reservation.reservationKind.toLowerCase()} data-live={live || undefined} style={style}>
+    <li
+      className="stx-book"
+      data-kind={reservation.reservationKind.toLowerCase()}
+      data-ended={ended || undefined}
+      data-live={live || undefined}
+      style={style}
+    >
       <details>
         <summary className="stx-spine">
           <span aria-hidden className="stx-spine__tooling" />
           <span className="stx-spine__title">
-            <span className="stx-spine__name">{title}</span>
+            <span className="stx-spine__name" data-length={title.length > 30 ? "long" : title.length > 14 ? "medium" : undefined}>
+              {title}
+            </span>
             {placeLine && <span className="stx-spine__place">{placeLine}</span>}
           </span>
           <span className="stx-label">
+            <span className="stx-label__small">{labelSmall}</span>
+            {ended && reservation.endsAt ? (
+              <span className="stx-stamp">Ended {formatClock(reservation.endsAt)}</span>
+            ) : (
+              <span className="stx-label__big">{labelBig}</span>
+            )}
             <span className="stx-label__kind">{kindName}</span>
-            <span>{labelDay}</span>
-            <span>{labelTime}</span>
           </span>
           {live && <span aria-hidden className="stx-ribbon" />}
         </summary>
 
         <div className="stx-slip">
-          <dl>
-            <div>
-              <dt>Starts</dt>
-              <dd>{formatShort(reservation.startsAt)}</dd>
-            </div>
-            <div>
-              <dt>Ends</dt>
-              <dd>{formatShort(reservation.endsAt)}</dd>
-            </div>
-            {reservation.holdUntil && (
-              <div>
-                <dt>Hold until</dt>
-                <dd>{formatShort(reservation.holdUntil)}</dd>
-              </div>
-            )}
-            <div>
-              <dt>Where</dt>
-              <dd>{reservation.pickupLocation || place || "Not listed in the email"}</dd>
-            </div>
-            <div className="stx-slip__wide">
-              <dt>From the email</dt>
-              <dd>{reservation.subject}</dd>
-            </div>
-          </dl>
+          <table>
+            <tbody>
+              {slipRows(reservation, place).map(([label, value]) => (
+                <tr key={label}>
+                  <th scope="row">{label}</th>
+                  <td>{value}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </details>
     </li>
@@ -133,10 +152,23 @@ export function StacksHome({
 }: HomeViewProps) {
   const now = new Date();
   const syncState = autoSyncHealthy ? "ok" : autoSyncNeedsRefresh ? "refreshing" : "attention";
+  const lastRun = latestAutoSync ? new Date(latestAutoSync.startedAt) : null;
+  const lastRunText = lastRun
+    ? isSameTucsonDay(lastRun, now)
+      ? formatClock(lastRun)
+      : `${formatDay(lastRun)}, ${formatClock(lastRun)}`
+    : null;
   const syncText = autoSyncHealthy
+    ? `Synced at ${lastRunText}`
+    : autoSyncNeedsRefresh
+      ? "Syncing now"
+      : lastRunText
+        ? `Last synced ${lastRunText}`
+        : "Not synced yet";
+  const syncTitle = autoSyncHealthy
     ? "Auto-sync is working."
     : autoSyncNeedsRefresh
-      ? "Auto-sync is refreshing now."
+      ? "The last auto-sync is stale, so a fresh one is running."
       : "Auto-sync needs a look from the owner.";
 
   return (
@@ -146,20 +178,18 @@ export function StacksHome({
           <h1 className="stx-head__title">On reserve</h1>
           <div className="stx-head__side">
             <p className="stx-head__lede">
-              Library rooms and holds that are booked right now, pulled from reservation emails.
+              Library rooms and holds that are booked right now, pulled from reservation emails. Open
+              any book for the details.
             </p>
-            {!loadError && (
-              <p className="stx-sync" data-state={syncState}>
-                <span aria-hidden className="stx-sync__lamp" />
-                <span>
-                  {syncText}{" "}
-                  {latestAutoSync
-                    ? `Last ran ${formatDay(new Date(latestAutoSync.startedAt))} at ${formatClock(new Date(latestAutoSync.startedAt))}.`
-                    : "It hasn’t run yet."}
-                </span>
-              </p>
-            )}
-            <StacksRoomFinder />
+            <div className="stx-head__actions">
+              <StacksRoomFinder />
+              {!loadError && (
+                <p className="stx-sync" data-state={syncState} title={syncTitle}>
+                  <span aria-hidden className="stx-sync__lamp" />
+                  <span>{syncText}</span>
+                </p>
+              )}
+            </div>
           </div>
         </header>
 
@@ -175,31 +205,29 @@ export function StacksHome({
               <p>New room bookings and holds show up here after the next sync.</p>
             </div>
           ) : (
-            <>
-              <p className="stx-shelf__hint">
-                {reservations.length === 1 ? "One reservation." : `${reservations.length} reservations, soonest on top.`} Open a book for the details.
-              </p>
-              <ol className="stx-books">
-                {reservations.map((reservation, index) => (
-                  <Book
-                    index={index}
-                    key={reservation.id}
-                    now={now}
-                    reservation={reservation}
-                    total={reservations.length}
-                  />
-                ))}
-              </ol>
-            </>
+            <ol className="stx-books">
+              {reservations.map((reservation, index) => (
+                <Book
+                  index={index}
+                  key={reservation.id}
+                  now={now}
+                  reservation={reservation}
+                  total={reservations.length}
+                />
+              ))}
+            </ol>
           )}
-          <div aria-hidden className="stx-table" />
         </section>
+      </main>
 
+      <div aria-hidden className="stx-table" />
+
+      <div className="stx-under">
         <footer className="stx-foot">
-          <p>Times shown in Tucson time.</p>
+          <p>Times are Tucson time. Bookings drop off the stack 8 hours after they end.</p>
           <ThemeToggle className="stx-link" current="stacks" />
         </footer>
-      </main>
+      </div>
     </div>
   );
 }
