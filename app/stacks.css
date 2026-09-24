@@ -133,12 +133,22 @@
   margin: 0;
   /* Letterpress: the ink sits slightly below the paper surface. */
   text-shadow: 0 1px 0 rgb(255 255 255 / 0.7), 0 -1px 0 rgb(0 0 0 / 0.1);
-  animation: stx-ink 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Backwards fill only, so the finished headline drops its compositing layer and keeps crisp text. */
+  animation: stx-ink 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) backwards;
 }
 
+/*
+ * Light-on-dark strokes render thinner, and Bodoni's display cut has ~1px hairlines at this size,
+ * so dark mode uses a lower optical size (sturdier hairlines) and only a soft glow, no offset shadow.
+ */
 @media (prefers-color-scheme: dark) {
+  .stx-empty__title {
+    font-variation-settings: "opsz" 28;
+  }
+
   .stx-head__title {
-    text-shadow: 0 1px 0 rgb(0 0 0 / 0.6), 0 0 56px rgb(255 190 110 / 0.16);
+    font-variation-settings: "opsz" 28;
+    text-shadow: 0 0 56px rgb(255 190 110 / 0.16);
   }
 }
 
