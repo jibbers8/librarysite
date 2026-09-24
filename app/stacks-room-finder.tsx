@@ -53,7 +53,7 @@ export function StacksRoomFinder({ label = "Find a room" }: { label?: string }) 
         ref={triggerRef}
         type="button"
       >
-        {label}
+        <span className="stx-foil">{label}</span>
       </button>
 
       {isOpen && (

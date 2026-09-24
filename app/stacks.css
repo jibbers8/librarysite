@@ -9,6 +9,8 @@
   --ink: #1e2533;
   --ink-soft: #505a68;
   --paper: #f5f2e9;
+  --paper-aged: #ece4cf;
+  --paper-slip: #efe8d6;
   --paper-rule: #d6dbe0;
   --paper-margin: #d9867c;
   --gilt: #e4c878;
@@ -43,6 +45,11 @@
     --cloth-equipment: #33477f;
     --cloth-other: #8f7428;
     --focus: #8fb2ff;
+    --paper: #d8d0bc;
+    --paper-aged: #cfc6b0;
+    --paper-slip: #d8d0bc;
+    --paper-rule: #bdb49f;
+    --stamp: #4a3280;
     color-scheme: dark;
   }
 }
@@ -57,6 +64,13 @@
 
 /* The room: a warm pool of reading-lamp light over the stack, plaster grain, soft vignette. */
 .stx {
+  /* Rounded shading, darker board ends, woven buckram and grain; a cloth colour goes underneath. */
+  --buckram:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.24) 0, rgb(255 255 255 / 0.15) 13%, rgb(255 255 255 / 0.05) 32%, transparent 54%, rgb(0 0 0 / 0.16) 80%, rgb(0 0 0 / 0.42) 100%),
+    linear-gradient(to right, rgb(0 0 0 / 0.28), transparent 14px, transparent calc(100% - 10px), rgb(0 0 0 / 0.22)),
+    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.06) 0 1px, transparent 1px 3px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
   --lamp: rgb(255 226 166 / 0.6);
   --vignette: rgb(36 40 34 / 0.24);
   display: flex;
@@ -202,17 +216,37 @@
 }
 
 .stx-button--solid {
-  background: var(--cloth-room);
+  background: var(--buckram), var(--cloth-room);
+  border-radius: 3px 6px 6px 3px;
   color: var(--gilt);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.12), 0 1px 2px rgb(0 0 0 / 0.25);
+  box-shadow:
+    inset 0 0 0 3px color-mix(in oklab, var(--cloth-room) 70%, transparent),
+    inset 0 0 0 4px rgb(228 200 120 / 0.45),
+    0 2px 3px -1px rgb(0 0 0 / 0.35);
+  transition: transform 0.55s cubic-bezier(0.34, 1.5, 0.5, 1), filter 0.2s ease;
 }
 
 .stx-button--solid:not(:disabled):hover {
-  background: color-mix(in oklab, var(--cloth-room) 85%, black);
+  filter: brightness(1.1);
+  transform: translateX(3px);
 }
 
 .stx-button--solid:not(:disabled):active {
-  transform: translateY(1px);
+  transition-duration: 0.12s;
+  transform: translateX(1px);
+}
+
+/* Foil-stamped button lettering, matching the spines. */
+.stx-foil {
+  color: transparent;
+  background: linear-gradient(to bottom, #fff1c4 0%, #edd087 30%, #c9a24a 56%, #f0d690 76%, #c99f48 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55));
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .stx-button--quiet {
@@ -249,26 +283,41 @@
 
 .stx-card {
   position: absolute;
-  z-index: 30;
+  z-index: 40;
   top: calc(100% + 10px);
   left: 0;
   width: min(360px, calc(100vw - 32px));
-  padding: 20px 22px 22px 34px;
+  padding: 20px 22px 40px 34px;
   color: #1e2533;
   background:
     linear-gradient(to right, transparent 22px, var(--paper-margin) 22px, var(--paper-margin) 23px, transparent 23px),
     linear-gradient(to bottom, transparent 62px, var(--paper-margin) 62px, var(--paper-margin) 63px, transparent 63px),
     var(--paper);
   border-radius: 2px;
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.08), 0 24px 48px -16px rgb(20 24 30 / 0.45);
-  animation: stx-card-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.08), 0 30px 60px -20px rgb(0 0 0 / 0.55);
+  transform: rotate(-0.4deg);
+  animation: stx-card-in 0.3s cubic-bezier(0.2, 0.8, 0.3, 1) both;
   transform-origin: top left;
+}
+
+/* The rod hole punched through the bottom of a catalog card. */
+.stx-card::after {
+  content: "";
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--stone);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.4);
+  transform: translateX(-50%);
 }
 
 @keyframes stx-card-in {
   from {
     opacity: 0;
-    transform: translateY(-6px) rotate(-0.6deg);
+    transform: translateY(-4px) rotate(-1deg);
   }
 }
 
@@ -310,12 +359,13 @@
 .stx-field select {
   width: 100%;
   appearance: none;
-  background: rgb(255 255 255 / 0.75);
-  border: 1px solid #b9bfc6;
-  border-radius: 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid #9aa3ad;
+  border-radius: 0;
   color: #1e2533;
   font: 400 0.9375rem/1.2 var(--font-text);
-  padding: 9px 10px;
+  padding: 6px 2px;
 }
 
 .stx-field select {
@@ -327,7 +377,7 @@
 }
 
 .stx-field select[aria-invalid="true"] {
-  border-color: var(--lamp-bad);
+  border-bottom-color: var(--lamp-bad);
 }
 
 .stx-card__error {
@@ -367,6 +417,17 @@
   padding: 0;
 }
 
+/* Warm lamp light falling across the stack. */
+.stx-books::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: -40px -80px;
+  background: radial-gradient(48% 55% at 60% 32%, rgb(255 222 160 / 0.5), transparent 75%);
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
 /* Soft shadow the stack casts onto the table top. */
 .stx-books::after {
   content: "";
@@ -381,7 +442,8 @@
 }
 
 .stx-book {
-  --cloth: var(--cloth-other);
+  --cloth-base: var(--cloth-other);
+  --cloth: color-mix(in oklab, var(--cloth-base) calc(100% - var(--drift-amt, 0%)), var(--drift, black));
   position: relative;
   width: var(--book-w, 100%);
   margin-left: var(--book-x, 0%);
@@ -391,15 +453,15 @@
 }
 
 .stx-book[data-kind="room"] {
-  --cloth: var(--cloth-room);
+  --cloth-base: var(--cloth-room);
 }
 
 .stx-book[data-kind="book"] {
-  --cloth: var(--cloth-book);
+  --cloth-base: var(--cloth-book);
 }
 
 .stx-book[data-kind="equipment"] {
-  --cloth: var(--cloth-equipment);
+  --cloth-base: var(--cloth-equipment);
 }
 
 .stx-book[data-live] {
@@ -428,14 +490,8 @@
   cursor: pointer;
   color: var(--gilt);
   border-radius: 3px 7px 7px 3px;
-  /* Rounded spine shading, darker board ends, woven buckram, grain, cloth colour. */
-  background:
-    linear-gradient(to bottom, rgb(0 0 0 / 0.24) 0, rgb(255 255 255 / 0.15) 13%, rgb(255 255 255 / 0.05) 32%, transparent 54%, rgb(0 0 0 / 0.16) 80%, rgb(0 0 0 / 0.42) 100%),
-    linear-gradient(to right, rgb(0 0 0 / 0.28), transparent 14px, transparent calc(100% - 10px), rgb(0 0 0 / 0.22)),
-    repeating-linear-gradient(0deg, rgb(255 255 255 / 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(90deg, rgb(0 0 0 / 0.06) 0 1px, transparent 1px 3px),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"),
-    var(--cloth);
+  z-index: 1;
+  background: var(--buckram), var(--cloth);
   --lift: 0 0 0 0 transparent;
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 0.14),
@@ -510,6 +566,20 @@ details[open] > .stx-spine {
   transition: background-position 0s;
 }
 
+.stx-spine__name {
+  animation: stx-glint 1.3s cubic-bezier(0.3, 0.6, 0.3, 1) backwards;
+  animation-delay: calc(1500ms + var(--i, 0) * 110ms);
+}
+
+@keyframes stx-glint {
+  from {
+    background-position: 100% 0, 0 0;
+  }
+  to {
+    background-position: 0 0, 0 0;
+  }
+}
+
 .stx-spine:hover .stx-spine__name,
 .stx-spine:focus-visible .stx-spine__name {
   background-position: 0 0, 0 0;
@@ -534,14 +604,18 @@ details[open] > .stx-spine {
 
 /* The typed call-number label stuck to the tail of the spine. */
 .stx-label {
+  --label-edge: inset 0 0 0 1px rgb(90 70 40 / 0.18), 0 1px 0 rgb(255 255 255 / 0.08), 0 0 0 1px rgb(0 0 0 / 0.25);
   position: relative;
   display: grid;
-  min-width: 118px;
+  min-width: 104px;
   padding: 6px 11px 7px;
-  color: #1e2533;
-  background: var(--paper);
+  color: #2a2620;
+  background:
+    linear-gradient(to bottom, rgb(255 255 255 / 0.35), transparent 40%),
+    color-mix(in oklab, var(--paper-aged) calc(100% - var(--label-age, 0%)), #b39a68);
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.2);
+  box-shadow: var(--label-edge);
+  transform: rotate(var(--label-tilt, 0deg));
   font-stretch: 80%;
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
@@ -549,7 +623,7 @@ details[open] > .stx-spine {
 
 .stx-label__small {
   font-size: 0.75rem;
-  color: #3a4250;
+  color: #4a4438;
 }
 
 .stx-label__big {
@@ -561,7 +635,7 @@ details[open] > .stx-spine {
 .stx-label__kind {
   margin-top: 2px;
   font-size: 0.6875rem;
-  color: #6b7380;
+  color: #756c5c;
 }
 
 /* Library date stamp in place of the time on a booking that has ended. */
@@ -636,7 +710,7 @@ details[open] > .stx-spine {
 }
 
 .stx-book[data-live] .stx-label {
-  box-shadow: inset 3px 0 0 var(--ribbon), 0 0 0 1px rgb(0 0 0 / 0.12), 0 1px 1px rgb(0 0 0 / 0.2);
+  box-shadow: inset 3px 0 0 var(--ribbon), var(--label-edge);
   padding-left: 13px;
 }
 
@@ -651,25 +725,45 @@ details[open] > .stx-spine {
 
 /* Date-due slip tucked between the pages. */
 .stx-slip {
-  width: min(440px, calc(100% - 40px));
-  margin: 8px 0 12px 28px;
-  padding: 12px 14px 14px;
-  color: #1e2533;
-  background: var(--paper);
-  border-radius: 2px;
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.1), 0 12px 24px -12px rgb(0 0 0 / 0.5);
-  animation: stx-slip-in 0.5s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  --slip-rot: -1.2deg;
+  position: relative;
+  z-index: 0;
+  width: min(440px, calc(100% - 80px));
+  margin: -14px 0 12px 64px;
+  padding: 26px 16px 14px;
+  color: #2a2620;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.14), transparent 18px),
+    var(--paper-slip);
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.1), 0 14px 26px -12px rgb(0 0 0 / 0.5);
+  transform: rotate(var(--slip-rot));
+  transform-origin: 0 0;
+  animation: stx-slip-in 0.55s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 
 @keyframes stx-slip-in {
   from {
     clip-path: inset(0 0 100% 0);
     opacity: 0.4;
-    transform: translateY(-16px);
+    transform: translateY(-24px) rotate(var(--slip-rot));
   }
   to {
     clip-path: inset(-40px);
+    transform: rotate(var(--slip-rot));
   }
+}
+
+.stx-slip caption {
+  caption-side: top;
+  padding-bottom: 5px;
+  border-bottom: 3px double var(--paper-margin);
+  color: #8a3a33;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-style: italic;
+  font-weight: 600;
+  text-align: left;
 }
 
 .stx-slip table {
@@ -695,6 +789,8 @@ details[open] > .stx-spine {
 /* Values look rubber-stamped in library ink. */
 .stx-slip td {
   padding: 7px 0 7px 12px;
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='i'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.6 1.75'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23i)'/%3E%3C/svg%3E");
+  mask-size: 120px;
   color: var(--stamp);
   font-size: 0.9375rem;
   font-stretch: 85%;
@@ -704,21 +800,24 @@ details[open] > .stx-spine {
 }
 
 .stx-slip tr:nth-child(odd) td {
-  transform: rotate(-0.6deg);
+  transform: rotate(-2deg);
 }
 
 .stx-slip tr:nth-child(even) td {
-  transform: rotate(0.4deg) translateX(2px);
+  transform: rotate(1.5deg);
 }
 
 /* The reading-room table the stack rests on: runs edge to edge. */
 .stx-table {
-  height: 44px;
+  height: 52px;
   background:
     radial-gradient(40% 120% at 60% 0%, rgb(255 214 150 / 0.28), transparent 70%),
     linear-gradient(to bottom, rgb(255 255 255 / 0.16), transparent 3px),
-    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.035) 0 2px, transparent 2px 9px, rgb(0 0 0 / 0.05) 9px 10px, transparent 10px 23px),
-    linear-gradient(to bottom, var(--walnut-light) 0, var(--walnut) 26px, color-mix(in oklab, var(--walnut) 55%, black) 26px, color-mix(in oklab, var(--walnut) 45%, black) 44px);
+    linear-gradient(to bottom, transparent 29px, rgb(255 220 170 / 0.25) 29px 30px, transparent 30px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='60' viewBox='0 0 1200 60' preserveAspectRatio='none'%3E%3Cfilter id='w'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.004 .18' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .07 0 0 0 0 .03 0 0 0 .9 -.15'/%3E%3C/filter%3E%3Crect width='1200' height='60' filter='url(%23w)'/%3E%3C/svg%3E"),
+    linear-gradient(to bottom, var(--walnut-light) 0, var(--walnut) 30px, color-mix(in oklab, var(--walnut) 55%, black) 30px, color-mix(in oklab, var(--walnut) 42%, black) 52px);
+  background-size: auto, auto, auto, 100% 100%, auto;
+  background-repeat: no-repeat;
   box-shadow: 0 26px 40px -22px rgb(0 0 0 / 0.55);
 }
 
@@ -747,7 +846,8 @@ details[open] > .stx-spine {
 .stx-under {
   flex: 1;
   background:
-    linear-gradient(to bottom, rgb(0 0 0 / 0.26), rgb(0 0 0 / 0.1) 48px, rgb(0 0 0 / 0.07));
+    linear-gradient(to bottom, rgb(0 0 0 / 0.28), transparent 22px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--walnut) 18%, var(--stone)), var(--stone) 160px);
 }
 
 .stx-foot {
@@ -757,7 +857,7 @@ details[open] > .stx-spine {
   justify-content: space-between;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 28px clamp(16px, 5vw, 56px) 40px;
+  padding: 20px clamp(16px, 5vw, 56px) 40px;
   color: var(--ink-soft);
   font-size: 0.8125rem;
 }
@@ -839,7 +939,28 @@ details[open] > .stx-spine {
     padding: 5px 8px 6px;
   }
 
+  .stx-label__big {
+    font-size: 0.875rem;
+  }
+
+  .stx-label__kind {
+    display: none;
+  }
+
   .stx-spine__name {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .stx-spine__place {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stx-spine__name:not([data-length]) {
     font-size: 1.5rem;
   }
 
@@ -848,7 +969,7 @@ details[open] > .stx-spine {
   }
 
   .stx-spine__name[data-length="long"] {
-    font-size: 1.0625rem;
+    font-size: 1rem;
   }
 
   .stx-ribbon {
@@ -857,8 +978,8 @@ details[open] > .stx-spine {
   }
 
   .stx-slip {
-    width: calc(100% - 16px);
-    margin-left: 8px;
+    width: calc(100% - 36px);
+    margin-left: 24px;
   }
 }
 

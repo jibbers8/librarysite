@@ -22,6 +22,9 @@ const KIND_NAMES: Record<string, string> = {
   OTHER: "Other",
 };
 
+/** Colours each binding drifts toward, so no two cloths of a kind match exactly. */
+const CLOTH_DRIFTS = ["#000000", "#ffffff", "#5b6a1e", "#1b4f5c"];
+
 /** Small stable hash so each book keeps its size and offset between visits. */
 function seeded(id: string, salt: number) {
   let hash = 2166136261 ^ salt;
@@ -93,6 +96,11 @@ function Book({
     "--book-h": `${Math.round(70 + seeded(reservation.id, 3) * 22)}px`,
     "--book-tilt": `${(seeded(reservation.id, 4) - 0.5) * 0.8}deg`,
     "--book-delay": `${Math.min(total - 1 - index, 10) * 85}ms`,
+    "--i": index,
+    "--label-tilt": `${((seeded(reservation.id, 5) - 0.5) * 1.4).toFixed(2)}deg`,
+    "--label-age": `${Math.round(seeded(reservation.id, 6) * 14)}%`,
+    "--drift": CLOTH_DRIFTS[Math.floor(seeded(reservation.id, 7) * CLOTH_DRIFTS.length)],
+    "--drift-amt": `${Math.round(3 + seeded(reservation.id, 8) * 9)}%`,
   } as CSSProperties;
 
   const placeLine = place ?? reservation.pickupLocation;
@@ -128,6 +136,7 @@ function Book({
 
         <div className="stx-slip">
           <table>
+            <caption>Date due</caption>
             <tbody>
               {slipRows(reservation, place).map(([label, value]) => (
                 <tr key={label}>
