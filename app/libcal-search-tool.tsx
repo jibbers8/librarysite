@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 const LIBCAL_BASE_URL = "https://libcal.library.arizona.edu/r/search";
 
-const CAPACITY_OPTIONS = [
+export const CAPACITY_OPTIONS = [
   { label: "All spaces", value: "0" },
   { label: "1-2 people", value: "1" },
   { label: "3-5 people", value: "2" },
@@ -37,10 +37,11 @@ function toMinutes(hhmm: string) {
   return hours * 60 + minutes;
 }
 
-const TIME_OPTIONS = buildTimeOptions();
+export const TIME_OPTIONS = buildTimeOptions();
 
-export function LibCalSearchTool() {
-  const [isOpen, setIsOpen] = useState(false);
+
+/** Shared form state for the LibCal room search, used by both themes. */
+export function useLibCalSearch() {
   const [date, setDate] = useState(getTodayIso);
   const [start, setStart] = useState("08:00");
   const [end, setEnd] = useState("10:00");
@@ -63,12 +64,35 @@ export function LibCalSearchTool() {
     return `${LIBCAL_BASE_URL}?${params.toString()}`;
   }, [capacity, date, end, start]);
 
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function openSearch() {
     if (!validRange) {
       return;
     }
     window.open(searchUrl, "_blank", "noopener,noreferrer");
+  }
+
+  return {
+    date,
+    setDate,
+    start,
+    setStart,
+    end,
+    setEnd,
+    capacity,
+    setCapacity,
+    validRange,
+    openSearch,
+  };
+}
+
+export function LibCalSearchTool() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { date, setDate, start, setStart, end, setEnd, capacity, setCapacity, validRange, openSearch } =
+    useLibCalSearch();
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    openSearch();
   }
 
   return (

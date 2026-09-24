@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Archivo, Bodoni_Moda, Geist, Geist_Mono } from "next/font/google";
+
+import { getTheme } from "@/lib/theme";
 import "./globals.css";
+import "./stacks.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,21 +15,38 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const bodoni = Bodoni_Moda({
+  variable: "--font-bodoni",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+});
+
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  axes: ["wdth"],
+});
+
 export const metadata: Metadata = {
   title: "Library Reservations",
   description: "Public view of current library reservations synced from Gmail.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const theme = await getTheme();
+
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+    <html
+      className={`${geistSans.variable} ${geistMono.variable} ${bodoni.variable} ${archivo.variable}`}
+      data-theme={theme}
+      lang="en"
+    >
+      <body className="antialiased">
         {children}
       </body>
     </html>

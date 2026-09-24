@@ -5,6 +5,9 @@ import { getServerAuthSession } from "@/auth";
 import { prisma } from "@/lib/db";
 import { syncReservations } from "@/lib/syncReservations";
 import { SignInButton } from "@/app/owner/sign-in-button";
+import { ThemeToggle } from "@/app/theme-toggle";
+import { formatClock, formatDay, formatTucsonTime } from "@/lib/reservationView";
+import { getTheme } from "@/lib/theme";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +16,6 @@ type OwnerPageProps = {
     | Record<string, string | string[] | undefined>
     | Promise<Record<string, string | string[] | undefined>>;
 };
-
-function formatTucsonTime(value: Date) {
-  return `${new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "America/Phoenix",
-  }).format(value)} Tucson`;
-}
 
 async function triggerSync() {
   "use server";
@@ -71,6 +66,38 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
     : null;
   const autoSyncHealthy = latestAutoSync?.status === "SUCCESS";
 
+  const view: OwnerViewProps = {
+    authError,
+    syncError,
+    session,
+    isOwner,
+    latestSync,
+    latestAutoSync,
+    autoSyncHealthy,
+  };
+
+  return (await getTheme()) === "classic" ? <ClassicOwner {...view} /> : <StacksOwner {...view} />;
+}
+
+type OwnerViewProps = {
+  authError?: string;
+  syncError?: string;
+  session: Awaited<ReturnType<typeof getServerAuthSession>>;
+  isOwner: boolean;
+  latestSync: { status: string; startedAt: Date } | null;
+  latestAutoSync: { startedAt: Date } | null;
+  autoSyncHealthy: boolean;
+};
+
+function ClassicOwner({
+  authError,
+  syncError,
+  session,
+  isOwner,
+  latestSync,
+  latestAutoSync,
+  autoSyncHealthy,
+}: OwnerViewProps) {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-6 p-6">
       <h1 className="text-3xl font-semibold">Owner Console</h1>
@@ -149,6 +176,104 @@ export default async function OwnerPage({ searchParams }: OwnerPageProps) {
           </div>
         </div>
       )}
+
+      <ThemeToggle
+        className="self-start text-xs text-zinc-500 underline underline-offset-2 hover:text-zinc-800"
+        current="classic"
+      />
     </main>
+  );
+}
+
+function StacksOwner({
+  authError,
+  syncError,
+  session,
+  isOwner,
+  latestSync,
+  latestAutoSync,
+  autoSyncHealthy,
+}: OwnerViewProps) {
+  return (
+    <div className="stx">
+      <main className="stx-page">
+        <header className="stx-head">
+          <h1 className="stx-head__title">Owner console</h1>
+          <div className="stx-head__side">
+            <p className="stx-head__lede">
+              Sign in with the owner&rsquo;s Google account to pull new reservation emails into the stack.
+            </p>
+          </div>
+        </header>
+
+        <div className="stx-console">
+          {authError && (
+            <p className="stx-note" data-tone="bad">
+              Google sign-in failed (<code>error={authError}</code>). Check the Google OAuth redirect URIs, the
+              Google client ID and secret, and <code>NEXTAUTH_SECRET</code> in Vercel.
+            </p>
+          )}
+          {syncError && (
+            <p className="stx-note">
+              Sync failed: <code>{syncError}</code>
+            </p>
+          )}
+
+          {!session && (
+            <div className="stx-actions">
+              <SignInButton className="stx-button stx-button--solid" />
+            </div>
+          )}
+
+          {session && !isOwner && (
+            <p className="stx-note" data-tone="bad">
+              You&rsquo;re signed in as {session.user?.email}, which doesn&rsquo;t match <code>OWNER_EMAIL</code>. Sign
+              in with the owner account or update the environment variable.
+            </p>
+          )}
+
+          {session && isOwner && (
+            <>
+              <p className="stx-meta">
+                Signed in as <strong>{session.user?.email}</strong>
+              </p>
+              <div className="stx-actions">
+                <form action={triggerSync}>
+                  <button className="stx-button stx-button--solid" type="submit">
+                    Sync now
+                  </button>
+                </form>
+                <Link className="stx-button stx-button--quiet" href="/api/auth/signout?callbackUrl=/owner">
+                  Sign out
+                </Link>
+              </div>
+
+              {latestSync && (
+                <p className="stx-meta">
+                  Latest sync {latestSync.status.toLowerCase()} on {formatDay(new Date(latestSync.startedAt))} at{" "}
+                  {formatClock(new Date(latestSync.startedAt))}.
+                </p>
+              )}
+              <p className="stx-sync" data-state={autoSyncHealthy ? "ok" : "attention"}>
+                <span aria-hidden className="stx-sync__lamp" />
+                <span>
+                  {autoSyncHealthy ? "Auto-sync is healthy." : "Auto-sync needs attention."}{" "}
+                  {latestAutoSync
+                    ? `Last ran ${formatDay(new Date(latestAutoSync.startedAt))} at ${formatClock(new Date(latestAutoSync.startedAt))}.`
+                    : "No auto-sync runs recorded yet."}
+                </span>
+              </p>
+            </>
+          )}
+        </div>
+
+        <footer className="stx-foot">
+          <Link className="stx-link" href="/">
+            Back to the stack
+          </Link>
+          <ThemeToggle className="stx-link" current="stacks" />
+        </footer>
+      </main>
+    </div>
   );
 }
