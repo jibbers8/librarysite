@@ -55,7 +55,8 @@ Helper command (prints exact callback URLs for your current env/domain):
 - Stale sync recovery: public page visits queue a background sync if the latest auto-sync is over 75 minutes old.
 - Public page only displays normalized reservation metadata from the database.
 - Automatic cleanup runs after sync:
-  - reservations are removed 24 hours after `endsAt`/`holdUntil`
+  - reservations leave the public page 8 hours after `endsAt` and are deleted on the next sync
+  - holds leave the page at `holdUntil` and are deleted 24 hours later
   - old `SyncLog` rows are pruned (default 48 hours)
   - configure sync log retention via `SYNC_LOG_RETENTION_HOURS`
 

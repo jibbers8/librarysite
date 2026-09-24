@@ -1,6 +1,7 @@
 import { after } from "next/server";
 
 import { prisma } from "@/lib/db";
+import { reservationExpiryCutoff } from "@/lib/reservationExpiry";
 import { syncReservations } from "@/lib/syncReservations";
 import { ClassicHome } from "@/app/classic-home";
 import { StacksHome } from "@/app/stacks-home";
@@ -48,7 +49,10 @@ export default async function Home() {
     reservations = await prisma.reservation.findMany({
       where: {
         status: "CONFIRMED",
-        OR: [{ holdUntil: null }, { holdUntil: { gte: new Date() } }],
+        AND: [
+          { OR: [{ holdUntil: null }, { holdUntil: { gte: new Date() } }] },
+          { OR: [{ endsAt: null }, { endsAt: { gte: reservationExpiryCutoff() } }] },
+        ],
       },
       orderBy: [{ holdUntil: "asc" }, { startsAt: "asc" }, { receivedAt: "desc" }],
       take: 100,

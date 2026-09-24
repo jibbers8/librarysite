@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { fetchRecentMessages } from "@/lib/mailClient";
 import { isPotentialReservationEmail, parseReservationEmail } from "@/lib/emailParser";
+import { reservationExpiryCutoff } from "@/lib/reservationExpiry";
 
 export type SyncTrigger = "MANUAL" | "CRON" | "API";
 
@@ -119,7 +120,7 @@ function getRetentionDays() {
 
 async function cleanupOldData() {
   const { syncLogHours } = getRetentionDays();
-  const reservationCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const holdCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const syncLogCutoff = new Date(Date.now() - syncLogHours * 60 * 60 * 1000);
 
   const reservations = await prisma.reservation.deleteMany({
@@ -127,8 +128,8 @@ async function cleanupOldData() {
       OR: [
         { status: "CANCELED" },
         { status: "EXPIRED" },
-        { holdUntil: { lt: reservationCutoff } },
-        { endsAt: { lt: reservationCutoff } },
+        { holdUntil: { lt: holdCutoff } },
+        { endsAt: { lt: reservationExpiryCutoff() } },
         {
           reservationKind: "OTHER",
           startsAt: null,
