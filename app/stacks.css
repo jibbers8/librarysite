@@ -99,10 +99,16 @@
   }
 }
 
+/* The headline scales with its own column so its longest word always fits. */
+.stx-head__titlebox {
+  container-type: inline-size;
+  min-width: 0;
+}
+
 .stx-head__title {
   font-family: var(--font-display);
   font-optical-sizing: auto;
-  font-size: clamp(4rem, 13vw, 9.5rem);
+  font-size: min(20.5cqi, 9.5rem);
   font-weight: 500;
   letter-spacing: -0.035em;
   line-height: 0.82;
@@ -150,21 +156,9 @@
   box-shadow: 0 0 0 3px rgb(47 143 85 / 0.18), 0 0 12px rgb(47 143 85 / 0.55);
 }
 
-.stx-sync[data-state="refreshing"] .stx-sync__lamp {
-  background: var(--lamp-wait);
-  box-shadow: 0 0 0 3px rgb(198 139 31 / 0.2), 0 0 12px rgb(198 139 31 / 0.5);
-  animation: stx-pulse 1.6s ease-in-out infinite;
-}
-
 .stx-sync[data-state="attention"] .stx-sync__lamp {
   background: var(--lamp-bad);
   box-shadow: 0 0 0 3px rgb(184 69 47 / 0.2);
-}
-
-@keyframes stx-pulse {
-  50% {
-    opacity: 0.35;
-  }
 }
 
 /* ---------- Buttons & links ---------- */

@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 const AUTO_SYNC_STALE_MS = 75 * 60 * 1000;
 const AUTO_SYNC_RUNNING_GRACE_MS = 10 * 60 * 1000;
+/** The public page reports auto-sync as working unless its last success is older than this. */
+const AUTO_SYNC_HEALTHY_MS = 6 * 60 * 60 * 1000;
 
 function shouldQueueAutoSync(latestAutoSync: AutoSyncStatus | null) {
   if (!latestAutoSync) {
@@ -43,6 +45,7 @@ function queueStaleAutoSync(latestAutoSync: AutoSyncStatus | null) {
 export default async function Home() {
   let reservations: ReservationView[] = [];
   let latestAutoSync: AutoSyncStatus | null = null;
+  let lastSuccessfulAutoSync: AutoSyncStatus | null = null;
   let loadError = false;
 
   try {
@@ -62,26 +65,29 @@ export default async function Home() {
       orderBy: { startedAt: "desc" },
       select: { startedAt: true, status: true },
     });
+    lastSuccessfulAutoSync =
+      latestAutoSync?.status === "SUCCESS"
+        ? latestAutoSync
+        : await prisma.syncLog.findFirst({
+            where: { trigger: "CRON", status: "SUCCESS" },
+            orderBy: { startedAt: "desc" },
+            select: { startedAt: true, status: true },
+          });
     queueStaleAutoSync(latestAutoSync);
   } catch {
     loadError = true;
   }
-  const autoSyncNeedsRefresh = !loadError && shouldQueueAutoSync(latestAutoSync);
   const autoSyncHealthy =
-    latestAutoSync?.status === "SUCCESS" && !autoSyncNeedsRefresh;
-  const autoSyncLabel = autoSyncHealthy
-    ? "Working"
-    : autoSyncNeedsRefresh
-      ? "Refreshing"
-      : "Check owner console";
+    !!lastSuccessfulAutoSync &&
+    Date.now() - lastSuccessfulAutoSync.startedAt.getTime() < AUTO_SYNC_HEALTHY_MS;
+  const autoSyncLabel = autoSyncHealthy ? "Working" : "Check owner console";
 
   const theme = await getTheme();
   const viewProps: HomeViewProps = {
     reservations,
     loadError,
-    latestAutoSync,
+    latestAutoSync: lastSuccessfulAutoSync,
     autoSyncHealthy,
-    autoSyncNeedsRefresh,
     autoSyncLabel,
   };
 

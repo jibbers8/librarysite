@@ -17,9 +17,9 @@ export type AutoSyncStatus = {
 export type HomeViewProps = {
   reservations: ReservationView[];
   loadError: boolean;
+  /** Most recent successful auto-sync. */
   latestAutoSync: AutoSyncStatus | null;
   autoSyncHealthy: boolean;
-  autoSyncNeedsRefresh: boolean;
   autoSyncLabel: string;
 };
 

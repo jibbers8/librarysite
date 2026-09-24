@@ -148,10 +148,9 @@ export function StacksHome({
   loadError,
   latestAutoSync,
   autoSyncHealthy,
-  autoSyncNeedsRefresh,
 }: HomeViewProps) {
   const now = new Date();
-  const syncState = autoSyncHealthy ? "ok" : autoSyncNeedsRefresh ? "refreshing" : "attention";
+  const syncState = autoSyncHealthy ? "ok" : "attention";
   const lastRun = latestAutoSync ? new Date(latestAutoSync.startedAt) : null;
   const lastRunText = lastRun
     ? isSameTucsonDay(lastRun, now)
@@ -159,23 +158,21 @@ export function StacksHome({
       : `${formatDay(lastRun)}, ${formatClock(lastRun)}`
     : null;
   const syncText = autoSyncHealthy
-    ? `Synced at ${lastRunText}`
-    : autoSyncNeedsRefresh
-      ? "Syncing now"
-      : lastRunText
-        ? `Last synced ${lastRunText}`
-        : "Not synced yet";
+    ? `Auto-sync working, last at ${lastRunText}`
+    : lastRunText
+      ? `No sync since ${lastRunText}`
+      : "Not synced yet";
   const syncTitle = autoSyncHealthy
-    ? "Auto-sync is working."
-    : autoSyncNeedsRefresh
-      ? "The last auto-sync is stale, so a fresh one is running."
-      : "Auto-sync needs a look from the owner.";
+    ? "Auto-sync has run in the last 6 hours."
+    : "Auto-sync hasn’t succeeded in 6 hours or more. The owner should take a look.";
 
   return (
     <div className="stx">
       <main className="stx-page">
         <header className="stx-head">
-          <h1 className="stx-head__title">On reserve</h1>
+          <div className="stx-head__titlebox">
+            <h1 className="stx-head__title">Hello Groupchat</h1>
+          </div>
           <div className="stx-head__side">
             <p className="stx-head__lede">
               Library rooms and holds that are booked right now, pulled from reservation emails. Open

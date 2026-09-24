@@ -198,7 +198,9 @@ function StacksOwner({
     <div className="stx">
       <main className="stx-page">
         <header className="stx-head">
-          <h1 className="stx-head__title">Owner console</h1>
+          <div className="stx-head__titlebox">
+            <h1 className="stx-head__title">Owner console</h1>
+          </div>
           <div className="stx-head__side">
             <p className="stx-head__lede">
               Sign in with the owner&rsquo;s Google account to pull new reservation emails into the stack.
